@@ -14,13 +14,13 @@ An Electron-based desktop application that transfers tweets from X (Twitter) to 
 ## Screenshots
 
 ### Transfer Tweets Page
-<img src="screenshots/Home.png" alt="Transfer Tweets" width="800"/>
+![Transfer Tweets](https://github.com/yunuskolbasar/RePostor/raw/main/screenshots/Home.png)
 
 ### Statistics Page
-<img src="screenshots/Statistics.png" alt="Statistics" width="800"/>
+![Statistics](https://github.com/yunuskolbasar/RePostor/raw/main/screenshots/Statistics.png)
 
 ### Settings Page
-<img src="screenshots/Settings.png" alt="Settings" width="800"/>
+![Settings](https://github.com/yunuskolbasar/RePostor/raw/main/screenshots/Settings.png)
 
 ## Installation
 
