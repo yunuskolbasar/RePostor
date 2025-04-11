@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tweet Buffer Uygulaması</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="titlebar">
+      <div class="titlebar-logo">
+        <i class="fa-brands fa-x-twitter"></i>
+        <span>Tweet Buffer</span>
+      </div>
+      <div class="titlebar-controls">
+        <button id="minimizeBtn" class="titlebar-button">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <button id="closeBtn" class="titlebar-button">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="sidebar">
+        <div class="app-info">
+          <div class="app-logo">
+            <i class="fa-brands fa-buffer"></i>
+          </div>
+          <h3>X → Buffer</h3>
+        </div>
+
+        <div class="menu">
+          <div class="menu-item active" data-page="home">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Tweet Aktar</span>
+          </div>
+          <div class="menu-item" data-page="settings">
+            <i class="fa-solid fa-gear"></i>
+            <span>Ayarlar</span>
+          </div>
+          <div class="menu-item" data-page="about">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Hakkında</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- Ana Sayfa - Tweet Aktarma Bölümü -->
+        <div class="page active" id="home-page">
+          <h1>X Tweet'lerini Buffer'a Aktar</h1>
+
+          <div class="card form-container">
+            <div class="form-group">
+              <label for="accountUrl">
+                <i class="fa-solid fa-user"></i> X Hesabı
+              </label>
+              <input
+                type="text"
+                id="accountUrl"
+                placeholder="@kullaniciadi veya https://x.com/kullaniciadi"
+              />
+              <p class="setting-description">
+                Takip edilecek hesabın kullanıcı adını veya URL'sini girin
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label for="bufferEmail">
+                <i class="fa-solid fa-envelope"></i> Buffer E-posta
+              </label>
+              <input
+                type="email"
+                id="bufferEmail"
+                placeholder="Buffer e-posta adresiniz"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="bufferPassword">
+                <i class="fa-solid fa-lock"></i> Buffer Şifre
+              </label>
+              <input
+                type="password"
+                id="bufferPassword"
+                placeholder="Buffer şifreniz"
+              />
+            </div>
+
+            <div class="checkbox-group">
+              <input type="checkbox" id="saveCredentials" />
+              <label for="saveCredentials">Bilgilerimi hatırla</label>
+            </div>
+
+            <button id="startBtn" class="primary-button">
+              <i class="fa-solid fa-play"></i> İşlemi Başlat
+            </button>
+          </div>
+
+          <div class="card status-section">
+            <h2><i class="fa-solid fa-circle-info"></i> Durum</h2>
+            <div id="statusLog" class="status-log"></div>
+          </div>
+        </div>
+
+        <!-- Ayarlar Sayfası -->
+        <div class="page" id="settings-page">
+          <h1>Ayarlar</h1>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-display"></i> Görünüm
+            </h3>
+            <div class="form-group">
+              <label>Tema</label>
+              <div class="radio-group">
+                <div class="radio-item">
+                  <input
+                    type="radio"
+                    id="theme-light"
+                    name="theme"
+                    value="light"
+                    checked
+                  />
+                  <label for="theme-light">Açık Tema</label>
+                </div>
+                <div class="radio-item">
+                  <input
+                    type="radio"
+                    id="theme-dark"
+                    name="theme"
+                    value="dark"
+                  />
+                  <label for="theme-dark">Koyu Tema</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-browser"></i> Tarayıcı Ayarları
+            </h3>
+            <div class="form-group">
+              <div class="checkbox-group">
+                <input type="checkbox" id="headless-mode" />
+                <label for="headless-mode"
+                  >Tarayıcıyı gizli modda çalıştır</label
+                >
+              </div>
+              <p class="setting-description">
+                Gizli mod etkinleştirildiğinde, tarayıcı penceresi görünmez.
+                İşlemler arka planda gerçekleşir.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-clock"></i> Zaman Ayarları
+            </h3>
+            <div class="form-group">
+              <label for="page-timeout"
+                >Sayfa Yükleme Zaman Aşımı (saniye)</label
+              >
+              <input
+                type="number"
+                id="page-timeout"
+                min="5"
+                max="60"
+                value="30"
+              />
+              <p class="setting-description">
+                Sayfaların yüklenmesi için beklenecek maksimum süre.
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label for="element-timeout"
+                >Element Bekleme Zaman Aşımı (saniye)</label
+              >
+              <input
+                type="number"
+                id="element-timeout"
+                min="2"
+                max="30"
+                value="10"
+              />
+              <p class="setting-description">
+                Sayfa elementlerinin (butonlar, form alanları vb.) yüklenmesi
+                için beklenecek maksimum süre.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-share-nodes"></i> Buffer Ayarları
+            </h3>
+            <div class="form-group">
+              <div class="checkbox-group">
+                <input type="checkbox" id="auto-publish" />
+                <label for="auto-publish">Otomatik Paylaşım</label>
+              </div>
+              <p class="setting-description">
+                Tweet'i Buffer'a ekledikten sonra taslak olarak kaydetmek yerine
+                hemen paylaşır.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-trash"></i> Veri Temizleme
+            </h3>
+            <div class="form-group">
+              <button id="clearDataBtn" class="danger-button">
+                <i class="fa-solid fa-trash"></i> Tüm Kaydedilmiş Verileri
+                Temizle
+              </button>
+              <p class="setting-description">
+                Kaydedilmiş tüm bilgiler ve ayarlar silinecektir. Bu işlem geri
+                alınamaz.
+              </p>
+            </div>
+          </div>
+
+          <div class="settings-actions">
+            <button id="saveSettingsBtn" class="primary-button">
+              <i class="fa-solid fa-floppy-disk"></i> Ayarları Kaydet
+            </button>
+          </div>
+        </div>
+
+        <!-- Hakkında Sayfası -->
+        <div class="page" id="about-page">
+          <h1>Hakkında</h1>
+
+          <div class="card about-section">
+            <div class="app-about">
+              <div class="app-logo-large">
+                <i class="fa-brands fa-buffer"></i>
+              </div>
+              <h2>Tweet Buffer</h2>
+              <p class="version">Sürüm 1.0.0</p>
+            </div>
+
+            <p class="about-description">
+              Bu uygulama, X (Twitter) platformundan tweet'leri alıp Buffer'a
+              aktarmanızı sağlar. Fotoğraf ve video içeren tweet'leri de
+              destekler.
+            </p>
+
+            <div class="about-links">
+              <a href="#" class="link-button">
+                <i class="fa-brands fa-github"></i> GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

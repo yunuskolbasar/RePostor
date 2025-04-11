@@ -1,0 +1,20 @@
+{
+  "name": "tweet-buffer-app",
+  "version": "1.0.0",
+  "description": "X (Twitter) tweetlerini Buffer'a paylaşan uygulama",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "electron": "^27.0.0",
+    "electron-store": "^8.1.0",
+    "puppeteer": "^21.5.0",
+    "yt-dlp-wrap": "^2.3.12"
+  }
+}
