@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Tweet Buffer Uygulaması</title>
+    <title data-i18n="appTitle">RePoster Uygulaması</title>
     <link rel="stylesheet" href="styles.css" />
     <link
       rel="stylesheet"
@@ -13,7 +13,7 @@
     <div class="titlebar">
       <div class="titlebar-logo">
         <i class="fa-brands fa-x-twitter"></i>
-        <span>Tweet Buffer</span>
+        <span>RePoster</span>
       </div>
       <div class="titlebar-controls">
         <button id="minimizeBtn" class="titlebar-button">
@@ -31,21 +31,33 @@
           <div class="app-logo">
             <i class="fa-brands fa-buffer"></i>
           </div>
-          <h3>X → Buffer</h3>
+          <h3>RePoster</h3>
         </div>
 
         <div class="menu">
           <div class="menu-item active" data-page="home">
             <i class="fa-solid fa-paper-plane"></i>
-            <span>Tweet Aktar</span>
+            <span data-i18n="menuTransfer">Tweet Aktar</span>
+          </div>
+          <div class="menu-item" data-page="stats">
+            <i class="fa-solid fa-chart-line"></i>
+            <span data-i18n="menuStats">İstatistikler</span>
           </div>
           <div class="menu-item" data-page="settings">
             <i class="fa-solid fa-gear"></i>
-            <span>Ayarlar</span>
+            <span data-i18n="menuSettings">Ayarlar</span>
           </div>
           <div class="menu-item" data-page="about">
             <i class="fa-solid fa-circle-info"></i>
-            <span>Hakkında</span>
+            <span data-i18n="menuAbout">Hakkında</span>
+          </div>
+        </div>
+        
+        <div class="language-options">
+          <div class="language-title"><i class="fa-solid fa-language"></i> <span data-i18n="languageTitle">Dil Seçimi</span></div>
+          <div class="language-buttons">
+            <button id="langTr" class="language-button active">Türkçe</button>
+            <button id="langEn" class="language-button">English</button>
           </div>
         </div>
       </div>
@@ -53,71 +65,188 @@
       <div class="content">
         <!-- Ana Sayfa - Tweet Aktarma Bölümü -->
         <div class="page active" id="home-page">
-          <h1>X Tweet'lerini Buffer'a Aktar</h1>
+          <h1 data-i18n="mainTitle">X Tweet'lerini Buffer'a Aktar</h1>
 
           <div class="card form-container">
             <div class="form-group">
               <label for="accountUrl">
-                <i class="fa-solid fa-user"></i> X Hesabı
+                <i class="fa-solid fa-user"></i> <span data-i18n="accountLabel">X Hesabı</span>
               </label>
               <input
                 type="text"
                 id="accountUrl"
+                data-i18n-placeholder="accountPlaceholder"
                 placeholder="@kullaniciadi veya https://x.com/kullaniciadi"
               />
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="accountDescription">
                 Takip edilecek hesabın kullanıcı adını veya URL'sini girin
               </p>
             </div>
 
             <div class="form-group">
               <label for="bufferEmail">
-                <i class="fa-solid fa-envelope"></i> Buffer E-posta
+                <i class="fa-solid fa-envelope"></i> <span data-i18n="emailLabel">Buffer E-posta</span>
               </label>
               <input
                 type="email"
                 id="bufferEmail"
+                data-i18n-placeholder="emailPlaceholder"
                 placeholder="Buffer e-posta adresiniz"
               />
             </div>
 
             <div class="form-group">
               <label for="bufferPassword">
-                <i class="fa-solid fa-lock"></i> Buffer Şifre
+                <i class="fa-solid fa-lock"></i> <span data-i18n="passwordLabel">Buffer Şifre</span>
               </label>
               <input
                 type="password"
                 id="bufferPassword"
+                data-i18n-placeholder="passwordPlaceholder"
                 placeholder="Buffer şifreniz"
               />
             </div>
 
+            <div class="form-group">
+              <label for="translateOption">
+                <i class="fa-solid fa-language"></i> <span data-i18n="translateLabel">Tweet Çevirisi</span>
+              </label>
+              <select id="translateOption" class="select-input">
+                <option value="none" data-i18n="translateNone">Çevirme (Orijinal)</option>
+                <option value="tr" data-i18n="translateTr">Türkçe'ye çevir</option>
+                <option value="en" data-i18n="translateEn">İngilizce'ye çevir</option>
+                <option value="fr" data-i18n="translateFr">Fransızca'ya çevir</option>
+                <option value="de" data-i18n="translateDe">Almanca'ya çevir</option>
+                <option value="ru" data-i18n="translateRu">Rusça'ya çevir</option>
+                <option value="es" data-i18n="translateEs">İspanyolca'ya çevir</option>
+              </select>
+              <p class="setting-description" data-i18n="translateDescription">
+                Tweetleri Buffer'a aktarmadan önce seçtiğiniz dile çevirir
+              </p>
+            </div>
+
             <div class="checkbox-group">
               <input type="checkbox" id="saveCredentials" />
-              <label for="saveCredentials">Bilgilerimi hatırla</label>
+              <label for="saveCredentials" data-i18n="rememberMe">Bilgilerimi hatırla</label>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="fa-solid fa-share-nodes"></i> <span data-i18n="publishOptionLabel">Paylaşım Seçeneği</span>
+              </label>
+              <div class="radio-group">
+                <div class="radio-item">
+                  <input type="radio" id="publish-option-draft" name="publish-option" value="draft" checked />
+                  <label for="publish-option-draft" data-i18n="publishOptionDraft">Taslak olarak kaydet</label>
+                </div>
+                <div class="radio-item">
+                  <input type="radio" id="publish-option-direct" name="publish-option" value="direct" />
+                  <label for="publish-option-direct" data-i18n="publishOptionDirect">Direkt paylaş</label>
+                </div>
+              </div>
+              <p class="setting-description" data-i18n="publishOptionDescription">
+                Tweet Buffer'a eklendiğinde taslak olarak kaydedilir veya hemen paylaşılır
+              </p>
             </div>
 
             <button id="startBtn" class="primary-button">
-              <i class="fa-solid fa-play"></i> İşlemi Başlat
+              <i class="fa-solid fa-play"></i> <span data-i18n="startButton">İşlemi Başlat</span>
             </button>
           </div>
 
           <div class="card status-section">
-            <h2><i class="fa-solid fa-circle-info"></i> Durum</h2>
+            <h2><i class="fa-solid fa-circle-info"></i> <span data-i18n="statusTitle">Durum</span></h2>
             <div id="statusLog" class="status-log"></div>
+          </div>
+        </div>
+
+        <!-- İstatistik Sayfası -->
+        <div class="page" id="stats-page">
+          <h1 data-i18n="statsTitle">İstatistikler</h1>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-calendar-days"></i> <span data-i18n="timeStatsTitle">Zaman Bazlı İstatistikler</span>
+            </h3>
+            <div class="stats-section">
+              <div class="stats-tabs">
+                <button class="stats-tab active" data-period="today" data-i18n="statsToday">Bugün</button>
+                <button class="stats-tab" data-period="week" data-i18n="statsWeek">Bu Hafta</button>
+                <button class="stats-tab" data-period="month" data-i18n="statsMonth">Bu Ay</button>
+                <button class="stats-tab" data-period="all" data-i18n="statsAllTime">Tüm Zamanlar</button>
+              </div>
+              <div class="stats-counters">
+                <div class="stats-counter">
+                  <div class="counter-value" id="tweets-count">0</div>
+                  <div class="counter-label" data-i18n="statsTweetsProcessed">İşlenen Tweet</div>
+                </div>
+                <div class="stats-counter">
+                  <div class="counter-value" id="tweets-success">0</div>
+                  <div class="counter-label" data-i18n="statsTweetsSuccess">Başarılı</div>
+                </div>
+                <div class="stats-counter">
+                  <div class="counter-value" id="tweets-failed">0</div>
+                  <div class="counter-label" data-i18n="statsTweetsFailed">Başarısız</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-user"></i> <span data-i18n="accountStatsTitle">Hesap İstatistikleri</span>
+            </h3>
+            <div class="stats-table-container">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="statsAccount">Hesap</th>
+                    <th data-i18n="statsTweets">Tweet Sayısı</th>
+                    <th data-i18n="statsLastTransfer">Son Aktarım</th>
+                  </tr>
+                </thead>
+                <tbody id="account-stats-body">
+                  <!-- Dinamik olarak doldurulacak -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="settings-category">
+              <i class="fa-solid fa-share-nodes"></i> <span data-i18n="platformStatsTitle">Platform İstatistikleri</span>
+            </h3>
+            <div class="stats-table-container">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="statsPlatform">Platform</th>
+                    <th data-i18n="statsShares">Paylaşım</th>
+                    <th data-i18n="statsLastShare">Son Paylaşım</th>
+                  </tr>
+                </thead>
+                <tbody id="platform-stats-body">
+                  <tr>
+                    <td>Buffer</td>
+                    <td>0</td>
+                    <td>-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
         <!-- Ayarlar Sayfası -->
         <div class="page" id="settings-page">
-          <h1>Ayarlar</h1>
+          <h1 data-i18n="settingsTitle">Ayarlar</h1>
 
           <div class="card">
             <h3 class="settings-category">
-              <i class="fa-solid fa-display"></i> Görünüm
+              <i class="fa-solid fa-display"></i> <span data-i18n="appearanceTitle">Görünüm</span>
             </h3>
             <div class="form-group">
-              <label>Tema</label>
+              <label data-i18n="themeLabel">Tema</label>
               <div class="radio-group">
                 <div class="radio-item">
                   <input
@@ -127,7 +256,7 @@
                     value="light"
                     checked
                   />
-                  <label for="theme-light">Açık Tema</label>
+                  <label for="theme-light" data-i18n="lightTheme">Açık Tema</label>
                 </div>
                 <div class="radio-item">
                   <input
@@ -136,7 +265,7 @@
                     name="theme"
                     value="dark"
                   />
-                  <label for="theme-dark">Koyu Tema</label>
+                  <label for="theme-dark" data-i18n="darkTheme">Koyu Tema</label>
                 </div>
               </div>
             </div>
@@ -144,16 +273,16 @@
 
           <div class="card">
             <h3 class="settings-category">
-              <i class="fa-solid fa-browser"></i> Tarayıcı Ayarları
+              <i class="fa-solid fa-browser"></i> <span data-i18n="browserTitle">Tarayıcı Ayarları</span>
             </h3>
             <div class="form-group">
               <div class="checkbox-group">
                 <input type="checkbox" id="headless-mode" />
-                <label for="headless-mode"
+                <label for="headless-mode" data-i18n="headlessMode"
                   >Tarayıcıyı gizli modda çalıştır</label
                 >
               </div>
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="headlessDescription">
                 Gizli mod etkinleştirildiğinde, tarayıcı penceresi görünmez.
                 İşlemler arka planda gerçekleşir.
               </p>
@@ -162,10 +291,10 @@
 
           <div class="card">
             <h3 class="settings-category">
-              <i class="fa-solid fa-clock"></i> Zaman Ayarları
+              <i class="fa-solid fa-clock"></i> <span data-i18n="timeTitle">Zaman Ayarları</span>
             </h3>
             <div class="form-group">
-              <label for="page-timeout"
+              <label for="page-timeout" data-i18n="pageTimeoutLabel"
                 >Sayfa Yükleme Zaman Aşımı (saniye)</label
               >
               <input
@@ -175,13 +304,13 @@
                 max="60"
                 value="30"
               />
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="pageTimeoutDescription">
                 Sayfaların yüklenmesi için beklenecek maksimum süre.
               </p>
             </div>
 
             <div class="form-group">
-              <label for="element-timeout"
+              <label for="element-timeout" data-i18n="elementTimeoutLabel"
                 >Element Bekleme Zaman Aşımı (saniye)</label
               >
               <input
@@ -191,7 +320,7 @@
                 max="30"
                 value="10"
               />
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="elementTimeoutDescription">
                 Sayfa elementlerinin (butonlar, form alanları vb.) yüklenmesi
                 için beklenecek maksimum süre.
               </p>
@@ -200,14 +329,14 @@
 
           <div class="card">
             <h3 class="settings-category">
-              <i class="fa-solid fa-share-nodes"></i> Buffer Ayarları
+              <i class="fa-solid fa-share-nodes"></i> <span data-i18n="bufferTitle">Buffer Ayarları</span>
             </h3>
             <div class="form-group">
               <div class="checkbox-group">
                 <input type="checkbox" id="auto-publish" />
-                <label for="auto-publish">Otomatik Paylaşım</label>
+                <label for="auto-publish" data-i18n="autoPublish">Otomatik Paylaşım</label>
               </div>
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="autoPublishDescription">
                 Tweet'i Buffer'a ekledikten sonra taslak olarak kaydetmek yerine
                 hemen paylaşır.
               </p>
@@ -216,14 +345,14 @@
 
           <div class="card">
             <h3 class="settings-category">
-              <i class="fa-solid fa-trash"></i> Veri Temizleme
+              <i class="fa-solid fa-trash"></i> <span data-i18n="dataTitle">Veri Temizleme</span>
             </h3>
             <div class="form-group">
               <button id="clearDataBtn" class="danger-button">
-                <i class="fa-solid fa-trash"></i> Tüm Kaydedilmiş Verileri
-                Temizle
+                <i class="fa-solid fa-trash"></i> <span data-i18n="clearDataButton">Tüm Kaydedilmiş Verileri
+                Temizle</span>
               </button>
-              <p class="setting-description">
+              <p class="setting-description" data-i18n="clearDataDescription">
                 Kaydedilmiş tüm bilgiler ve ayarlar silinecektir. Bu işlem geri
                 alınamaz.
               </p>
@@ -232,33 +361,33 @@
 
           <div class="settings-actions">
             <button id="saveSettingsBtn" class="primary-button">
-              <i class="fa-solid fa-floppy-disk"></i> Ayarları Kaydet
+              <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveSettings">Ayarları Kaydet</span>
             </button>
           </div>
         </div>
 
         <!-- Hakkında Sayfası -->
         <div class="page" id="about-page">
-          <h1>Hakkında</h1>
+          <h1 data-i18n="aboutTitle">Hakkında</h1>
 
           <div class="card about-section">
             <div class="app-about">
               <div class="app-logo-large">
                 <i class="fa-brands fa-buffer"></i>
               </div>
-              <h2>Tweet Buffer</h2>
-              <p class="version">Sürüm 1.0.0</p>
+              <h2>RePoster</h2>
+              <p class="version" data-i18n="version">Sürüm 1.0.0</p>
             </div>
 
-            <p class="about-description">
+            <p class="about-description" data-i18n="aboutDescription">
               Bu uygulama, X (Twitter) platformundan tweet'leri alıp Buffer'a
               aktarmanızı sağlar. Fotoğraf ve video içeren tweet'leri de
               destekler.
             </p>
 
             <div class="about-links">
-              <a href="#" class="link-button">
-                <i class="fa-brands fa-github"></i> GitHub
+              <a href="https://github.com/yunuskolbasar/RePostor" class="link-button" target="_blank">
+                <i class="fa-brands fa-github"></i> <span data-i18n="githubLink">GitHub</span>
               </a>
             </div>
           </div>
