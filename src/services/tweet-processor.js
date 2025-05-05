@@ -8,12 +8,18 @@ const mediaHandler = require("./media-handler");
 const bufferClient = require("./buffer-client");
 const textInputHandler = require("./text-input-handler");
 
+let shouldStop = false;
+let browser = null;
+let page = null;
+const TWEETS_TO_CHECK = 5; // Her hesaptan kontrol edilecek tweet sayısı
+
 /**
  * Tweet işleme sürecini başlatır
  * @param {Object} event Event nesnesi
  * @param {Object} data İşlem verileri
  */
 async function startProcess(event, data) {
+  shouldStop = false;
   try {
     event.reply("update-status", "İşlem başlatılıyor...");
 
@@ -22,8 +28,11 @@ async function startProcess(event, data) {
       accountUrl,
       bufferEmail,
       bufferPassword,
+      xUsername,
+      xPassword,
       settings = defaultSettings,
     } = data;
+    let tweetIntervals = data.tweetIntervals || [];
 
     // Zaman aşımı sürelerini hesapla
     const pageTimeout = settings.pageTimeout * 1000;
@@ -43,59 +52,131 @@ async function startProcess(event, data) {
       return;
     }
 
+    // X giriş bilgisi kontrolü
+    if (!xUsername || !xPassword) {
+      event.reply("update-status", "X giriş bilgileri eksik!");
+      return;
+    }
+
     // Hesap URL'sini formatla
     const formattedAccountUrl = formatAccountUrl(accountUrl);
 
-    // Tarayıcıyı başlat
-    event.reply("update-status", "Tarayıcı başlatılıyor...");
-    const browser = await launchBrowser(headlessMode);
-    const page = await createPage(browser, pageTimeout, elementTimeout);
+    // Tarayıcıyı başlat (sadece ilk seferde)
+    if (!browser) {
+      event.reply("update-status", "Tarayıcı başlatılıyor...");
+      browser = await puppeteer.launch({
+        headless: headlessMode,
+        args: ["--start-maximized"],
+      });
+    }
+    // Sayfa oluştur (ilk seferde veya sayfa kapalıysa)
+    if (!page || page.isClosed()) {
+      page = await browser.newPage();
+      await page.setViewport({ width: 1366, height: 768 });
+      page.setDefaultNavigationTimeout(pageTimeout);
+      page.setDefaultTimeout(elementTimeout);
+    }
 
     try {
-      // Hesap sayfasına git ve tweeti bul
-      const tweetUrl = await findLatestTweetFromAccount(
-        page,
-        formattedAccountUrl,
-        elementTimeout,
-        (msg) => event.reply("update-status", msg)
-      );
+      // X'e giriş yap
+      await loginToX(page, xUsername, xPassword, (msg) => event.reply("update-status", msg));
 
-      if (!tweetUrl) {
-        throw new Error("Tweet bulunamadı");
+      let usedTweets = new Set();
+      let planTweetCount = tweetIntervals.length;
+      let planIndex = 0;
+      let planLoop = async () => {
+        for (let i = 0; i < tweetIntervals.length; i++) {
+          if (shouldStop) break;
+          let tweetUrl = null;
+          let currentAccount = accountUrl;
+          let triedAccounts = [];
+          let tweetSuccessfullyProcessed = false;
+          for (const acc of [accountUrl, data.secondaryAccountUrl, data.tertiaryAccountUrl]) {
+            if (!acc || triedAccounts.includes(acc)) continue;
+            triedAccounts.push(acc);
+            const formattedAccountUrl = formatAccountUrl(acc);
+            try {
+              event.reply("update-status", `${acc} hesabında son ${TWEETS_TO_CHECK} tweet kontrol ediliyor...`);
+              await page.goto(formattedAccountUrl, { waitUntil: "networkidle2" });
+              await tweetScraper.injectTweetParseFunctions(page);
+              const tweetUrls = await tweetScraper.findLatestTweets(page, elementTimeout, TWEETS_TO_CHECK);
+              event.reply("update-status", `Bulunan tweetler: ${JSON.stringify(tweetUrls)}`);
+              event.reply("update-status", `usedTweets kümesi: ${JSON.stringify(Array.from(usedTweets))}`);
+              for (const url of tweetUrls) {
+                // 1-3 saniye arası rastgele bekle
+                const randomWait = 1000 + Math.floor(Math.random() * 2000);
+                await new Promise(res => setTimeout(res, randomWait));
+                if (!usedTweets.has(url)) {
+                  tweetUrl = url;
+                  event.reply("update-status", `İşlenecek yeni tweet bulundu: ${tweetUrl}`);
+                  break;
+                } else {
+                  event.reply("update-status", `Tweet zaten işlenmiş: ${url}`);
+                }
+              }
+              if (tweetUrl) {
+                break;
+              }
+            } catch (err) {
+              event.reply("update-status", `${acc} için tweet çekilemedi, sıradaki hesaba geçiliyor. Hata: ${err.message}`);
+              continue;
+            }
+          }
+          if (!tweetUrl) {
+            event.reply("update-status", "Hiçbir hesaptan yeni tweet bulunamadı, bu aralık atlanıyor.");
+            continue;
+          }
+          usedTweets.add(tweetUrl);
+          // Tweet içeriğini işle
+          const result = await processTweet(
+            page,
+            tweetUrl,
+            elementTimeout,
+            bufferEmail,
+            bufferPassword,
+            autoPublish,
+            pageTimeout,
+            (msg) => event.reply("update-status", msg)
+          );
+          tweetSuccessfullyProcessed = !!result;
+          if (!tweetSuccessfullyProcessed) {
+            event.reply("update-status", "Tweet işlenemedi, sıradaki aralığa geçiliyor.");
+            continue;
+          }
+          // Sadece başarılı işlendiyse bekle
+          if (i < tweetIntervals.length - 1) {
+            const waitSeconds = tweetIntervals[i] * 60;
+            if (event.reply) event.reply('start-countdown', waitSeconds);
+            for (let s = 0; s < waitSeconds; s++) {
+              if (shouldStop) break;
+              await new Promise(res => setTimeout(res, 1000));
+            }
+          }
+        }
+      };
+      // Sonsuz döngü: 1 saatlik plan bitince yeni plan oluştur
+      while (!shouldStop) {
+        await planLoop();
+        if (shouldStop) break;
+        // Yeni plan oluştur (rastgele aralıklar)
+        const tweetCount = planTweetCount;
+        tweetIntervals = generateRandomIntervals(tweetCount);
+        if (event.reply) event.reply('new-plan', tweetCount);
+        event.reply("update-status", "Yeni 1 saatlik plan başlatıldı!");
       }
-
-      // Tweet içeriğini işle
-      const result = await processTweet(
-        page,
-        tweetUrl,
-        elementTimeout,
-        bufferEmail,
-        bufferPassword,
-        autoPublish,
-        pageTimeout,
-        (msg) => event.reply("update-status", msg)
-      );
-
-      if (!result) {
-        throw new Error("Tweet işlenemedi");
-      }
-
-      await browser.close();
-      event.reply("update-status", "İşlem tamamlandı!");
+      event.reply("update-status", "Tüm tweetler paylaşıldı!");
     } catch (error) {
-      await browser.close();
       throw error;
     }
   } catch (error) {
     event.reply("update-status", `Hata oluştu: ${error.message}`);
     console.error(error);
   } finally {
-    // Her durumda işlem tamamlandı bildirimi gönder
     if (getMainWindow() && !getMainWindow().isDestroyed()) {
       try {
         event.reply(
           "update-status",
-          "İşlem tamamlandı - buton etkinleştirildi!"
+          shouldStop ? "İşlem iptal edildi - buton etkinleştirildi!" : "İşlem tamamlandı - buton etkinleştirildi!"
         );
       } catch (e) {
         console.error("Final bildirim hatası:", e);
@@ -270,6 +351,77 @@ async function processTweet(
   }
 }
 
+/**
+ * X (Twitter) hesabına giriş yapar
+ * @param {Object} page Puppeteer sayfası
+ * @param {string} username X kullanıcı adı
+ * @param {string} password X şifre
+ * @param {Function} statusCallback Durum güncellemesi callback'i
+ */
+async function loginToX(page, username, password, statusCallback) {
+  statusCallback("X hesabı oturum kontrolü yapılıyor...");
+  await page.goto("https://x.com/home", { waitUntil: "networkidle2" });
+
+  // Oturum açık mı kontrol et (profil simgesi, tweet butonu vs.)
+  const isLoggedIn = await page.$('a[aria-label="Profile"], div[data-testid="SideNav_AccountSwitcher_Button"], a[aria-label="Tweet"]');
+  if (isLoggedIn) {
+    statusCallback("X hesabında zaten oturum açık, giriş atlanıyor.");
+    return;
+  }
+
+  statusCallback("X hesabına giriş yapılıyor...");
+  await page.goto("https://x.com/login", { waitUntil: "networkidle2" });
+  await page.waitForSelector('input[name="text"]', { timeout: 20000 });
+  await page.type('input[name="text"]', username, { delay: 100 });
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(2000);
+  await page.waitForSelector('input[name="password"]', { timeout: 20000 });
+  await page.type('input[name="password"]', password, { delay: 100 });
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(5000);
+  statusCallback("X hesabına giriş yapıldı.");
+}
+
+function stopProcess(event) {
+  shouldStop = true;
+}
+
+// Uygulama kapanırken tarayıcıyı kapat
+process.on('exit', async () => {
+  if (browser) await browser.close();
+});
+
+// Rastgele aralıklar oluşturucu (backend için)
+function generateRandomIntervals(tweetCount, totalMinutes = 60) {
+  if (tweetCount < 2) return [totalMinutes];
+  let points = [];
+  for (let i = 0; i < tweetCount - 1; i++) {
+    points.push(Math.random() * totalMinutes);
+  }
+  points.sort((a, b) => a - b);
+  let intervals = [];
+  for (let i = 0; i < tweetCount; i++) {
+    if (i === 0) {
+      intervals.push(points[0]);
+    } else if (i === tweetCount - 1) {
+      intervals.push(totalMinutes - points[points.length - 1]);
+    } else {
+      intervals.push(points[i] - points[i - 1]);
+    }
+  }
+  intervals = intervals.map(x => Math.max(1, Math.round(x)));
+  let diff = totalMinutes - intervals.reduce((a, b) => a + b, 0);
+  intervals[intervals.length - 1] += diff;
+  return intervals;
+}
+
+// Tweet URL'sinden tweet ID'sini ayıklayan yardımcı fonksiyon
+function extractTweetIdFromUrl(url) {
+  const match = url.match(/status\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 module.exports = {
   startProcess,
+  stopProcess,
 };

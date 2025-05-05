@@ -10,8 +10,8 @@ let mainWindow = null;
  */
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 700,
+    width: 1200,
+    height: 900,
     frame: false,
     transparent: false,
     backgroundColor: "#f5f8fa",

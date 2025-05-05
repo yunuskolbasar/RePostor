@@ -12,12 +12,28 @@ async function login(page, email, password, statusCallback) {
     { waitUntil: "networkidle2" }
   );
 
-  await page.type('input[name="email"]', email);
-  await page.type('input[name="password"]', password);
+  await page.type('input[name="email"]', email, { delay: 100 });
+  await page.type('input[name="password"]', password, { delay: 100 });
   await page.keyboard.press("Enter");
 
   statusCallback("Buffer'a giriş yapıldı, sayfa yükleniyor...");
   await page.waitForNavigation({ waitUntil: "networkidle2" });
+
+  // Buffer açıldığında popup çıkarsa X (kapat) butonuna tıkla
+  await page.waitForTimeout(2000);
+  // Öncelikli olarak Buffer'ın yeni popup X butonunu dene
+  let closeBtn = await page.$('button.publish_close_ObJJi');
+  if (!closeBtn) {
+    // Eski veya farklı popup'lar için genel close butonlarını dene
+    closeBtn = await page.$('button[aria-label="Close"], button.close, .close, button[title="Close"], button[aria-label="Dismiss"], button[aria-label="close"]');
+  }
+  if (closeBtn) {
+    await closeBtn.click();
+    await page.waitForTimeout(2000); // Kapatma sonrası bekle
+    statusCallback("Buffer popup'ı varsa X ile kapatıldı ve 2 sn beklendi");
+  } else {
+    statusCallback("Buffer popup'ı bulunamadı veya kapatılacak popup yok");
+  }
 }
 
 /**
@@ -28,6 +44,26 @@ async function login(page, email, password, statusCallback) {
  */
 async function openComposePage(page, timeout, statusCallback) {
   try {
+    statusCallback("Ortadaki 'New Post' butonu aranıyor...");
+    try {
+      await page.waitForSelector('button.publish_primary_FQYGy', { timeout: timeout });
+      const buttons = await page.$$('button.publish_primary_FQYGy');
+      let found = false;
+      for (const btn of buttons) {
+        const text = await page.evaluate(el => el.textContent, btn);
+        if (text && text.toLowerCase().includes('new post')) {
+          await btn.click();
+          statusCallback("Ortadaki 'New Post' butonuna tıklandı");
+          found = true;
+          await page.waitForTimeout(1000);
+          break;
+        }
+      }
+      if (found) return true;
+    } catch (e) {
+      statusCallback("Ortadaki 'New Post' butonu bulunamadı, diğer yöntemler deneniyor...");
+    }
+    // Eski yöntemlerle devam
     statusCallback("Post oluşturma butonu aranıyor...");
     try {
       await page.waitForXPath(
@@ -46,7 +82,6 @@ async function openComposePage(page, timeout, statusCallback) {
       statusCallback(
         "Post oluşturma butonu bulunamadı. Alternatif yöntem deneniyor..."
       );
-
       // Doğrudan compose sayfasına gitmeyi dene
       try {
         statusCallback("Compose sayfasına yönlendiriliyor...");
@@ -82,10 +117,28 @@ async function saveAsDraft(page, timeout, statusCallback) {
       timeout: timeout,
     });
     await page.click('button[data-testid="draft-save-buttons"]');
-    statusCallback("Post taslak olarak kaydedildi");
+    statusCallback("Taslak kaydetme butonuna tıklandı, 3 saniye bekleniyor...");
+    await page.waitForTimeout(3000); // Ekstra bekleme
+    // Doğrulama: Taslaklar sekmesinde post görünüyor mu?
+    try {
+      statusCallback("Taslaklar sekmesi kontrol ediliyor...");
+      await page.goto('https://publish.buffer.com/drafts', { waitUntil: 'networkidle2', timeout: timeout });
+      await page.waitForTimeout(2000);
+      const postExists = await page.evaluate(() => {
+        const posts = Array.from(document.querySelectorAll('div[data-testid="post-preview"]'));
+        return posts.length > 0;
+      });
+      if (postExists) {
+        statusCallback("Taslak başarıyla kaydedildi ve listede görünüyor.");
+      } else {
+        statusCallback("Uyarı: Taslak kaydedildi ama listede görünmüyor!");
+      }
+    } catch (e) {
+      statusCallback("Taslak doğrulama sırasında hata oluştu: " + e.message);
+    }
     return true;
   } catch (error) {
-    statusCallback("Taslak kaydetme butonu bulunamadı");
+    statusCallback("Taslak kaydetme adımlarında hata oluştu: " + error.message);
     return false;
   }
 }
@@ -98,63 +151,16 @@ async function saveAsDraft(page, timeout, statusCallback) {
  */
 async function addToQueue(page, timeout, statusCallback) {
   try {
-    statusCallback("Post kuyruğa ekleniyor...");
-
-    // 1. Yöntem: Dropdown menüyü açma
-    try {
-      const dropdownSelector =
-        'button[data-testid="post-composer-schedule-dropdown"]';
-      await page.waitForSelector(dropdownSelector, { timeout: timeout });
-      await page.click(dropdownSelector);
-
-      const queueOptionSelector = 'div[data-testid="add-to-queue-option"]';
-      await page.waitForSelector(queueOptionSelector, { timeout: timeout });
-      await page.click(queueOptionSelector);
-
-      statusCallback("Post kuyruğa eklendi");
-      return true;
-    } catch (dropdownError) {
-      statusCallback(
-        "Dropdown menü bulunamadı, alternatif yöntem deneniyor..."
-      );
-    }
-
-    // 2. Yöntem: Doğrudan Queue butonu
-    try {
-      const queueButtonSelector = 'button[data-testid="queue-button"]';
-      await page.waitForSelector(queueButtonSelector, { timeout: timeout });
-      await page.click(queueButtonSelector);
-
-      statusCallback("Post kuyruğa eklendi");
-      return true;
-    } catch (queueButtonError) {
-      statusCallback("Queue butonu bulunamadı, alternatif yöntem deneniyor...");
-    }
-
-    // 3. Yöntem: Metin içeren buton
-    try {
-      await page.waitForXPath('//button[contains(., "Add to Queue")]', {
-        timeout: timeout,
-      });
-      const [addToQueueButton] = await page.$x(
-        '//button[contains(., "Add to Queue")]'
-      );
-      if (addToQueueButton) {
-        await addToQueueButton.click();
-        statusCallback("Post kuyruğa eklendi");
-        return true;
-      }
-    } catch (textButtonError) {
-      statusCallback(
-        "Add to Queue butonu bulunamadı, taslak olarak kaydediliyor..."
-      );
-      return await saveAsDraft(page, timeout, statusCallback);
-    }
-  } catch (error) {
-    statusCallback("Kuyruğa ekleme hatası: " + error.message);
+    statusCallback("Post kuyruğa eklenmeden önce 'Customize for each network' butonuna tıklanıyor...");
+    await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
+    await page.click('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    statusCallback("'Customize for each network' butonuna tıklandı");
+    await page.waitForTimeout(1000);
     return await saveAsDraft(page, timeout, statusCallback);
+  } catch (error) {
+    statusCallback("Kuyruğa ekleme adımlarında hata oluştu: " + error.message);
+    return false;
   }
-  return false;
 }
 
 /**
@@ -166,6 +172,11 @@ async function addToQueue(page, timeout, statusCallback) {
  */
 async function publishNow(page, timeout, statusCallback) {
   try {
+    statusCallback("Post paylaşılmadan önce 'Customize for each network' butonuna tıklanıyor...");
+    await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
+    await page.click('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    statusCallback("'Customize for each network' butonuna tıklandı");
+    await page.waitForTimeout(1000);
     statusCallback("Post paylaşılıyor...");
     const publishSelector = 'button[data-testid="publish-button"]';
     await page.waitForSelector(publishSelector, {
@@ -175,8 +186,8 @@ async function publishNow(page, timeout, statusCallback) {
     statusCallback("Post başarıyla paylaşıldı");
     return true;
   } catch (error) {
-    statusCallback("Paylaşım butonu bulunamadı, kuyruğa ekleniyor...");
-    return await addToQueue(page, timeout, statusCallback);
+    statusCallback("Paylaşım adımlarında hata oluştu: " + error.message);
+    return false;
   }
 }
 

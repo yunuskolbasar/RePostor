@@ -67,96 +67,168 @@
         <div class="page active" id="home-page">
           <h1 data-i18n="mainTitle">X Tweet'lerini Buffer'a Aktar</h1>
 
-          <div class="card form-container">
-            <div class="form-group">
-              <label for="accountUrl">
-                <i class="fa-solid fa-user"></i> <span data-i18n="accountLabel">X Hesabı</span>
-              </label>
-              <input
-                type="text"
-                id="accountUrl"
-                data-i18n-placeholder="accountPlaceholder"
-                placeholder="@kullaniciadi veya https://x.com/kullaniciadi"
-              />
-              <p class="setting-description" data-i18n="accountDescription">
-                Takip edilecek hesabın kullanıcı adını veya URL'sini girin
-              </p>
-            </div>
-
-            <div class="form-group">
-              <label for="bufferEmail">
-                <i class="fa-solid fa-envelope"></i> <span data-i18n="emailLabel">Buffer E-posta</span>
-              </label>
-              <input
-                type="email"
-                id="bufferEmail"
-                data-i18n-placeholder="emailPlaceholder"
-                placeholder="Buffer e-posta adresiniz"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="bufferPassword">
-                <i class="fa-solid fa-lock"></i> <span data-i18n="passwordLabel">Buffer Şifre</span>
-              </label>
-              <input
-                type="password"
-                id="bufferPassword"
-                data-i18n-placeholder="passwordPlaceholder"
-                placeholder="Buffer şifreniz"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="translateOption">
-                <i class="fa-solid fa-language"></i> <span data-i18n="translateLabel">Tweet Çevirisi</span>
-              </label>
-              <select id="translateOption" class="select-input">
-                <option value="none" data-i18n="translateNone">Çevirme (Orijinal)</option>
-                <option value="tr" data-i18n="translateTr">Türkçe'ye çevir</option>
-                <option value="en" data-i18n="translateEn">İngilizce'ye çevir</option>
-                <option value="fr" data-i18n="translateFr">Fransızca'ya çevir</option>
-                <option value="de" data-i18n="translateDe">Almanca'ya çevir</option>
-                <option value="ru" data-i18n="translateRu">Rusça'ya çevir</option>
-                <option value="es" data-i18n="translateEs">İspanyolca'ya çevir</option>
-              </select>
-              <p class="setting-description" data-i18n="translateDescription">
-                Tweetleri Buffer'a aktarmadan önce seçtiğiniz dile çevirir
-              </p>
-            </div>
-
+          <div class="form-group">
+            <label for="accountUrl">
+              <i class="fa-solid fa-user"></i> <span data-i18n="accountLabel">X Hesabı</span>
+            </label>
+            <input
+              type="text"
+              id="accountUrl"
+              data-i18n-placeholder="accountPlaceholder"
+              placeholder="@kullaniciadi veya https://x.com/kullaniciadi"
+            />
+            <input type="text" id="secondaryAccountUrl" placeholder="İkincil X hesabı (@kullaniciadi)" class="account-input" style="margin-top:6px;" />
+            <input type="text" id="tertiaryAccountUrl" placeholder="Üçüncül X hesabı (@kullaniciadi)" class="account-input" style="margin-top:6px;" />
             <div class="checkbox-group">
-              <input type="checkbox" id="saveCredentials" />
-              <label for="saveCredentials" data-i18n="rememberMe">Bilgilerimi hatırla</label>
+              <input type="checkbox" id="rememberAccountUrl" />
+              <label for="rememberAccountUrl">Takip edilecek hesabı hatırla</label>
             </div>
-
-            <div class="form-group">
-              <label>
-                <i class="fa-solid fa-share-nodes"></i> <span data-i18n="publishOptionLabel">Paylaşım Seçeneği</span>
-              </label>
-              <div class="radio-group">
-                <div class="radio-item">
-                  <input type="radio" id="publish-option-draft" name="publish-option" value="draft" checked />
-                  <label for="publish-option-draft" data-i18n="publishOptionDraft">Taslak olarak kaydet</label>
-                </div>
-                <div class="radio-item">
-                  <input type="radio" id="publish-option-direct" name="publish-option" value="direct" />
-                  <label for="publish-option-direct" data-i18n="publishOptionDirect">Direkt paylaş</label>
-                </div>
-              </div>
-              <p class="setting-description" data-i18n="publishOptionDescription">
-                Tweet Buffer'a eklendiğinde taslak olarak kaydedilir veya hemen paylaşılır
-              </p>
-            </div>
-
-            <button id="startBtn" class="primary-button">
-              <i class="fa-solid fa-play"></i> <span data-i18n="startButton">İşlemi Başlat</span>
-            </button>
+            <p class="setting-description" data-i18n="accountDescription">
+              Takip edilecek hesabın kullanıcı adını veya URL'sini girin
+            </p>
           </div>
 
+          <div class="form-group">
+            <label for="xUsername">
+              <i class="fa-solid fa-at"></i> <span data-i18n="xUsernameLabel">X Hesap Kullanıcı Adı</span>
+            </label>
+            <input
+              type="text"
+              id="xUsername"
+              data-i18n-placeholder="xUsernamePlaceholder"
+              placeholder="X kullanıcı adınız"
+            />
+            <div class="checkbox-group">
+              <input type="checkbox" id="rememberXCredentials" />
+              <label for="rememberXCredentials">X hesabı giriş bilgilerini hatırla</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="xPassword">
+              <i class="fa-solid fa-key"></i> <span data-i18n="xPasswordLabel">X Hesap Şifresi</span>
+            </label>
+            <input
+              type="password"
+              id="xPassword"
+              data-i18n-placeholder="xPasswordPlaceholder"
+              placeholder="X şifreniz"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="bufferEmail">
+              <i class="fa-solid fa-envelope"></i> <span data-i18n="emailLabel">Buffer E-posta</span>
+            </label>
+            <input
+              type="email"
+              id="bufferEmail"
+              data-i18n-placeholder="emailPlaceholder"
+              placeholder="Buffer e-posta adresiniz"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="bufferPassword">
+              <i class="fa-solid fa-lock"></i> <span data-i18n="passwordLabel">Buffer Şifre</span>
+            </label>
+            <input
+              type="password"
+              id="bufferPassword"
+              data-i18n-placeholder="passwordPlaceholder"
+              placeholder="Buffer şifreniz"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="translateOption">
+              <i class="fa-solid fa-language"></i> <span data-i18n="translateLabel">Tweet Çevirisi</span>
+            </label>
+            <select id="translateOption" class="select-input">
+              <option value="none" data-i18n="translateNone">Çevirme (Orijinal)</option>
+              <option value="tr" data-i18n="translateTr">Türkçe'ye çevir</option>
+              <option value="en" data-i18n="translateEn">İngilizce'ye çevir</option>
+              <option value="fr" data-i18n="translateFr">Fransızca'ya çevir</option>
+              <option value="de" data-i18n="translateDe">Almanca'ya çevir</option>
+              <option value="ru" data-i18n="translateRu">Rusça'ya çevir</option>
+              <option value="es" data-i18n="translateEs">İspanyolca'ya çevir</option>
+            </select>
+            <p class="setting-description" data-i18n="translateDescription">
+              Tweetleri Buffer'a aktarmadan önce seçtiğiniz dile çevirir
+            </p>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="saveCredentials" />
+            <label for="saveCredentials" data-i18n="rememberMe">Bilgilerimi hatırla</label>
+          </div>
+          <div class="form-group" id="filterBtnGroup">
+            <button id="filterBtn" class="secondary-button">
+              <i class="fa-solid fa-filter"></i> <span data-i18n="filterButton">Filtrele</span>
+            </button>
+            <span style="margin-left: 10px; color: #888; font-size: 13px;" data-i18n="filterInfo">Filtreleme seçenekleri burada</span>
+          </div>
+
+          <div id="filterModal" class="modal" style="display:none;">
+            <div class="modal-content">
+              <span class="close" id="closeFilterModal">&times;</span>
+              <h2><i class="fa-solid fa-filter"></i> <span data-i18n="filterOptions">Filtreleme Seçenekleri</span></h2>
+              <div class="form-group">
+                <label for="dateRange" data-i18n="dateRangeLabel">Tarih Aralığı</label>
+                <input type="date" id="dateStart" /> - <input type="date" id="dateEnd" />
+              </div>
+              <div class="form-group">
+                <input type="checkbox" id="onlyMedia" />
+                <label for="onlyMedia" data-i18n="onlyMediaLabel">Sadece medya içeren tweetler</label>
+              </div>
+              <div class="form-group">
+                <input type="checkbox" id="excludeRetweets" />
+                <label for="excludeRetweets" data-i18n="excludeRetweetsLabel">Retweetleri hariç tut</label>
+              </div>
+              <div class="form-group">
+                <label for="bannedWords" data-i18n="bannedWordsLabel">Yasaklı Kelimeler</label>
+                <input type="text" id="bannedWords" placeholder="ör. küfür1, kelime2, kelime3" />
+                <p class="setting-description" data-i18n="bannedWordsDescription">Bu kelimeleri içeren tweetler çekilmez. Virgül ile ayırınız.</p>
+              </div>
+              <div class="form-group">
+                <label for="maxTweetsPerHour" data-i18n="maxTweetsPerHourLabel">Saatte maksimum kaç tweet çekilsin?</label>
+                <input type="number" id="maxTweetsPerHour" min="1" max="20" value="5" />
+                <p class="setting-description" data-i18n="maxTweetsPerHourDescription">Örneğin: 5 tweet (minimum 1, maksimum 20 tweet)</p>
+              </div>
+              <button id="applyFiltersBtn" class="primary-button"><i class="fa-solid fa-check"></i> <span data-i18n="applyFilters">Filtreleri Uygula</span></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="fa-solid fa-share-nodes"></i> <span data-i18n="publishOptionLabel">Paylaşım Seçeneği</span>
+            </label>
+            <div class="radio-group">
+              <div class="radio-item">
+                <input type="radio" id="publish-option-draft" name="publish-option" value="draft" checked />
+                <label for="publish-option-draft" data-i18n="publishOptionDraft">Taslak olarak kaydet</label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" id="publish-option-direct" name="publish-option" value="direct" />
+                <label for="publish-option-direct" data-i18n="publishOptionDirect">Direkt paylaş</label>
+              </div>
+            </div>
+            <p class="setting-description" data-i18n="publishOptionDescription">
+              Tweet Buffer'a eklendiğinde taslak olarak kaydedilir veya hemen paylaşılır
+            </p>
+          </div>
+
+          <button id="startBtn" class="primary-button">
+            <i class="fa-solid fa-play"></i> <span data-i18n="startButton">İşlemi Başlat</span>
+          </button>
+
           <div class="card status-section">
-            <h2><i class="fa-solid fa-circle-info"></i> <span data-i18n="statusTitle">Durum</span></h2>
+            <h2 class="status-title"><i class="fa-solid fa-circle-info"></i> <span data-i18n="statusTitle">Durum</span></h2>
             <div id="statusLog" class="status-log"></div>
+            <div class="plan-table-header">
+              <span id="countdownDisplay" class="countdown-display"></span>
+            </div>
+            <div id="planTableDiv" class="plan-table"></div>
           </div>
         </div>
 

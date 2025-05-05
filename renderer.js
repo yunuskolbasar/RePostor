@@ -30,6 +30,42 @@ const pages = document.querySelectorAll(".page");
 const langTrBtn = document.getElementById("langTr");
 const langEnBtn = document.getElementById("langEn");
 
+const bannedWordsInput = document.getElementById("bannedWords");
+
+const xUsernameInput = document.getElementById("xUsername");
+const xPasswordInput = document.getElementById("xPassword");
+
+const rememberAccountUrlCheckbox = document.getElementById("rememberAccountUrl");
+const rememberXCredentialsCheckbox = document.getElementById("rememberXCredentials");
+
+// Birincil/ikincil/üçüncül hesap alanları ekle
+let secondaryAccountInput = document.getElementById("secondaryAccountUrl");
+let tertiaryAccountInput = document.getElementById("tertiaryAccountUrl");
+if (!secondaryAccountInput) {
+  secondaryAccountInput = document.createElement('input');
+  secondaryAccountInput.type = 'text';
+  secondaryAccountInput.id = 'secondaryAccountUrl';
+  secondaryAccountInput.placeholder = 'İkincil X hesabı (@kullaniciadi)';
+  accountUrlInput.parentNode.appendChild(secondaryAccountInput);
+}
+if (!tertiaryAccountInput) {
+  tertiaryAccountInput = document.createElement('input');
+  tertiaryAccountInput.type = 'text';
+  tertiaryAccountInput.id = 'tertiaryAccountUrl';
+  tertiaryAccountInput.placeholder = 'Üçüncül X hesabı (@kullaniciadi)';
+  accountUrlInput.parentNode.appendChild(tertiaryAccountInput);
+}
+
+// Plan tablosu için alan ekle
+let planTableDiv = document.getElementById('planTableDiv');
+if (!planTableDiv) {
+  planTableDiv = document.createElement('div');
+  planTableDiv.id = 'planTableDiv';
+  planTableDiv.style.margin = '10px 0';
+  planTableDiv.style.fontWeight = 'bold';
+  statusSection.appendChild(planTableDiv);
+}
+
 const defaultSettings = {
   theme: "light",
   headlessMode: false,
@@ -42,6 +78,97 @@ const defaultSettings = {
 
 let currentSettings = { ...defaultSettings };
 let currentLanguage = "tr"; // Varsayılan dil
+let isProcessing = false;
+
+// Sayaç ve aralıklar için alan ekle
+let tweetIntervals = [];
+let currentIntervalIndex = 0;
+let countdownTimer = null;
+
+// Sayaç gösterecek alanı ekle
+const statusSection = document.querySelector('.status-section');
+const countdownDisplay = document.getElementById('countdownDisplay');
+
+function generateRandomIntervals(tweetCount, totalMinutes = 60) {
+  if (tweetCount < 2) return [totalMinutes];
+  let points = [];
+  for (let i = 0; i < tweetCount - 1; i++) {
+    points.push(Math.random() * totalMinutes);
+  }
+  points.sort((a, b) => a - b);
+  let intervals = [];
+  for (let i = 0; i < tweetCount; i++) {
+    if (i === 0) {
+      intervals.push(points[0]);
+    } else if (i === tweetCount - 1) {
+      intervals.push(totalMinutes - points[points.length - 1]);
+    } else {
+      intervals.push(points[i] - points[i - 1]);
+    }
+  }
+  // En az 1 dakika aralık olsun
+  intervals = intervals.map(x => Math.max(1, Math.round(x)));
+  // Toplamı 60'a eşitle
+  let diff = totalMinutes - intervals.reduce((a, b) => a + b, 0);
+  intervals[intervals.length - 1] += diff;
+  return intervals;
+}
+
+// Filtre uygulandığında aralıkları hesapla ve göster
+const maxTweetsPerHourInput = document.getElementById('maxTweetsPerHour');
+const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+
+function showPlanTable(intervals) {
+  let html = '<table style="width:100%;border:1px solid #ccc;margin-top:8px;"><tr><th>#</th><th>Saat:Dakika</th><th>Süre (dk)</th></tr>';
+  let total = 0;
+  for (let i = 0; i < intervals.length; i++) {
+    total += intervals[i];
+    const saat = Math.floor(total / 60);
+    const dakika = total % 60;
+    html += `<tr><td>${i+1}</td><td>${saat}:${dakika.toString().padStart(2,'0')}</td><td>${intervals[i]}</td></tr>`;
+  }
+  html += '</table>';
+  planTableDiv.innerHTML = html;
+}
+
+// Plan ve sayaç güncellemesi
+function generateAndShowPlan(tweetCount) {
+  tweetIntervals = generateRandomIntervals(tweetCount);
+  showPlanTable(tweetIntervals);
+}
+
+applyFiltersBtn.addEventListener('click', () => {
+  const tweetCount = parseInt(maxTweetsPerHourInput.value) || 1;
+  generateAndShowPlan(tweetCount);
+});
+
+// 1 saatlik döngü bittiğinde yeni plan oluştur
+ipcRenderer.on('new-plan', (event, tweetCount) => {
+  generateAndShowPlan(tweetCount);
+});
+
+// Sayaç fonksiyonu
+function startCountdown(seconds) {
+  clearInterval(countdownTimer);
+  let remaining = seconds;
+  if (countdownDisplay) {
+    countdownDisplay.textContent = `Sonraki tweet için: ${Math.floor(remaining/60)} dk ${remaining%60} sn`;
+  }
+  countdownTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdownTimer);
+      if (countdownDisplay) countdownDisplay.textContent = '';
+    } else {
+      if (countdownDisplay) countdownDisplay.textContent = `Sonraki tweet için: ${Math.floor(remaining/60)} dk ${remaining%60} sn`;
+    }
+  }, 1000);
+}
+
+// Backend'den sayaç başlatma komutu gelirse
+ipcRenderer.on('start-countdown', (event, seconds) => {
+  startCountdown(seconds);
+});
 
 // Dil değiştirme butonları için olay dinleyicileri
 langTrBtn.addEventListener("click", () => {
@@ -214,6 +341,29 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Platform istatistiklerini tabloya ekle
   renderPlatformStats();
+
+  // Filtreleme modalı aç/kapat
+  const filterBtn = document.getElementById("filterBtn");
+  const filterModal = document.getElementById("filterModal");
+  const closeFilterModal = document.getElementById("closeFilterModal");
+  const applyFiltersBtn = document.getElementById("applyFiltersBtn");
+
+  filterBtn.addEventListener("click", () => {
+    filterModal.style.display = "flex";
+  });
+  closeFilterModal.addEventListener("click", () => {
+    filterModal.style.display = "none";
+  });
+  applyFiltersBtn.addEventListener("click", () => {
+    filterModal.style.display = "none";
+    // Burada filtre değerleri alınabilir ve kullanılabilir
+  });
+
+  if (xUsernameInput) xUsernameInput.addEventListener("keydown", handleEnterKey);
+  if (xPasswordInput) xPasswordInput.addEventListener("keydown", handleEnterKey);
+
+  // Sayfa ilk yüklendiğinde de kontrol et
+  showStatusSectionIfHome();
 });
 
 ipcRenderer.on("settings-loaded", (event, settings) => {
@@ -351,13 +501,59 @@ ipcRenderer.on("saved-credentials", (event, data) => {
     accountUrlInput.value = data.accountUrl || "";
     bufferEmailInput.value = data.bufferEmail || "";
     bufferPasswordInput.value = data.bufferPassword || "";
-    saveCredentialsCheckbox.checked = true;
+    xUsernameInput.value = data.xUsername || "";
+    xPasswordInput.value = data.xPassword || "";
+    saveCredentialsCheckbox.checked = !!data.saveCredentials;
+    rememberAccountUrlCheckbox.checked = !!data.rememberAccountUrl;
+    rememberXCredentialsCheckbox.checked = !!data.rememberXCredentials;
   }
 });
 
 // Çeviri durum mesajları için yardımcı fonksiyon
 function formatTranslationMessage(message, param) {
   return message.replace("{0}", param);
+}
+
+// Tweet işlendikçe istatistikleri güncelle
+function updateStatsOnStatus(message) {
+  // Başarıyla işlenen tweet
+  if (message.includes("Tweet metni alındı") || message.includes("Tweet işleme tamamlandı") || message.includes("Tweet başarıyla işlendi")) {
+    statsData.tweets.total++;
+    statsData.tweets.success++;
+    // Hesap istatistiğini güncelle
+    const match = message.match(/@([a-zA-Z0-9_]+)/);
+    if (match) {
+      const acc = "@" + match[1];
+      let found = false;
+      for (let i = 0; i < statsData.accounts.length; i++) {
+        if (statsData.accounts[i].name === acc) {
+          statsData.accounts[i].count++;
+          statsData.accounts[i].lastDate = new Date().toLocaleString('tr-TR', { hour12: false });
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        statsData.accounts.push({ name: acc, count: 1, lastDate: new Date().toLocaleString('tr-TR', { hour12: false }) });
+      }
+    }
+    // Platform istatistiğini güncelle
+    if (statsData.platforms.length > 0) {
+      statsData.platforms[0].shares++;
+      statsData.platforms[0].lastDate = new Date().toLocaleString('tr-TR', { hour12: false });
+    }
+    updateStatsForPeriod("today");
+    renderAccountStats();
+    renderPlatformStats();
+  }
+  // Hatalı işlenen tweet
+  if (message.includes("Tweet işlenemedi") || message.includes("Tweet işleme hatası") || message.includes("Tweet metni bulunamadı")) {
+    statsData.tweets.total++;
+    statsData.tweets.failed++;
+    updateStatsForPeriod("today");
+    renderAccountStats();
+    renderPlatformStats();
+  }
 }
 
 // Durum güncellemesi ve buton durumu için tek bir fonksiyon
@@ -384,13 +580,15 @@ function handleStatusUpdate(message) {
     message.includes("Hata oluştu") ||
     message.includes("işlem iptal edildi")
   ) {
+    isProcessing = false;
     startButton.disabled = false;
-    
-    // Dil ayarına göre metin güncelle
     const startText = translations[currentLanguage].startButton;
     startButton.innerHTML = `<i class="fa-solid fa-play"></i> <span data-i18n="startButton">${startText}</span>`;
     console.log("İşlem sonlandı, buton etkinleştirildi:", message);
   }
+
+  // İstatistikleri güncelle
+  updateStatsOnStatus(message);
 }
 
 // Tek bir olay dinleyicisi ekle
@@ -421,34 +619,53 @@ bufferEmailInput.addEventListener("keydown", handleEnterKey);
 bufferPasswordInput.addEventListener("keydown", handleEnterKey);
 
 startButton.addEventListener("click", () => {
+  if (isProcessing) {
+    ipcRenderer.send("stop-process");
+    addStatusMessage("İşlem durduruluyor...", "info");
+    return;
+  }
+
   const accountUrl = accountUrlInput.value.trim();
   const bufferEmail = bufferEmailInput.value.trim();
   const bufferPassword = bufferPasswordInput.value.trim();
-  const translateTo = translateSelect.value; // Çeviri seçeneğini al
-  const autoPublish = publishOptionDirectRadio.checked; // Direkt paylaşım değerini radio butondan al
+  const xUsername = xUsernameInput.value.trim();
+  const xPassword = xPasswordInput.value.trim();
+  const translateTo = translateSelect.value;
+  const autoPublish = publishOptionDirectRadio.checked;
 
-  if (!accountUrl || !bufferEmail || !bufferPassword) {
+  const secondaryAccountUrl = secondaryAccountInput.value.trim();
+  const tertiaryAccountUrl = tertiaryAccountInput.value.trim();
+
+  if (!accountUrl || !bufferEmail || !bufferPassword || !xUsername || !xPassword) {
     addStatusMessage("Tüm alanları doldurun!", "error");
     return;
   }
 
   const saveCredentials = saveCredentialsCheckbox.checked;
+  const rememberAccountUrl = rememberAccountUrlCheckbox.checked;
+  const rememberXCredentials = rememberXCredentialsCheckbox.checked;
 
   const credentials = {
-    accountUrl,
-    bufferEmail,
-    bufferPassword,
+    accountUrl: rememberAccountUrl ? accountUrl : "",
+    bufferEmail: saveCredentials ? bufferEmail : "",
+    bufferPassword: saveCredentials ? bufferPassword : "",
+    xUsername: rememberXCredentials ? xUsername : "",
+    xPassword: rememberXCredentials ? xPassword : "",
     saveCredentials,
+    rememberAccountUrl,
+    rememberXCredentials,
   };
 
-  // Çeviri seçeneğini ayarlara ekle
+  ipcRenderer.send("save-credentials", credentials);
+
   currentSettings.translateTo = translateTo;
   currentSettings.autoPublish = autoPublish;
-  
-  ipcRenderer.send("start-process", credentials, currentSettings);
 
+  // Aralıkları da parametre olarak gönder
+  ipcRenderer.send("start-process", { ...credentials, tweetIntervals, secondaryAccountUrl, tertiaryAccountUrl }, currentSettings);
+
+  isProcessing = true;
   startButton.disabled = true;
-  // Dil ayarına göre metin güncelle
   const stopText = translations[currentLanguage].stopButton;
   startButton.innerHTML = `<i class="fa-solid fa-stop"></i> <span data-i18n="stopButton">${stopText}</span>`;
 
@@ -465,7 +682,9 @@ function addStatusMessage(message, type = null) {
     statusEntry.classList.add("status-success");
   }
 
-  const timestamp = new Date().toLocaleTimeString();
+  // 24 saatlik formatta saat
+  const now = new Date();
+  const timestamp = now.toLocaleTimeString('tr-TR', { hour12: false });
   statusEntry.textContent = `[${timestamp}] ${message}`;
 
   statusLog.appendChild(statusEntry);
@@ -574,4 +793,56 @@ function renderPlatformStats() {
     
     tableBody.appendChild(row);
   });
+}
+
+function normalizeText(text) {
+  return text
+    .toLocaleLowerCase('tr')
+    .replace(/ü/g, 'u')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g');
+}
+
+function filterTweets(tweets, bannedWords) {
+  const normalizedBanned = bannedWords.map(word => normalizeText(word));
+  return tweets.filter(tweet => {
+    const normTweet = normalizeText(tweet);
+    return !normalizedBanned.some(word => normTweet.includes(word));
+  });
+}
+
+// Tweet çekme işlemi sırasında filtreleme yapılacak
+function fetchTweets() {
+  const bannedWords = bannedWordsInput.value.split(',').map(word => word.trim());
+  // Tweet çekme işlemi burada yapılacak
+  const tweets = []; // Örnek tweet listesi
+  const filteredTweets = filterTweets(tweets, bannedWords);
+  // Filtrelenmiş tweetleri işle
+}
+
+// Sayfa geçişlerinde durum/sayaç kutusunu sadece ana sayfada göster
+function showStatusSectionIfHome() {
+  const statusSection = document.querySelector('.status-section');
+  const homePage = document.getElementById('home-page');
+  if (!statusSection) return;
+  if (homePage && homePage.classList.contains('active')) {
+    statusSection.style.display = '';
+  } else {
+    statusSection.style.display = 'none';
+  }
+}
+
+// Sayfa geçiş fonksiyonunu güncelle
+function switchPage(pageId) {
+  document.querySelectorAll('.page').forEach(page => {
+    page.classList.remove('active');
+  });
+  const page = document.getElementById(pageId);
+  if (page) {
+    page.classList.add('active');
+  }
+  showStatusSectionIfHome();
 }

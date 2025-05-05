@@ -458,23 +458,42 @@ h3.settings-category i {
 
 /* Durum Bölümü */
 .status-section {
-  height: 350px;
+  min-height: 420px;
+  height: auto;
   display: flex;
   flex-direction: column;
+  background: var(--card-background);
+  box-shadow: 0 4px 24px rgba(29,161,242,0.10);
+  border-radius: 16px;
+  padding: 28px 24px 24px 24px;
+  margin-bottom: 24px;
+}
+
+.status-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--highlight-color);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .status-log {
-  flex: 1;
+  flex: none;
+  max-height: 180px;
+  min-height: 60px;
   overflow-y: auto;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #eee;
+  padding: 16px;
+  background-color: var(--status-log-bg);
+  border-radius: 10px;
+  border: 1.5px solid var(--status-border);
   font-family: monospace;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: 1.08rem;
   white-space: pre-wrap;
   word-wrap: break-word;
+  margin-bottom: 18px;
 }
 
 .status-entry {
@@ -894,4 +913,176 @@ tr:last-child td {
 .theme-dark .stats-table th {
   background-color: #1da1f2 !important;
   color: #ffffff !important;
+}
+
+/* Modal pencere stilleri */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background-color: var(--card-background);
+  margin: 10vh auto;
+  padding: 32px 24px 24px 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+  position: relative;
+}
+.close {
+  color: var(--secondary-text);
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.close:hover {
+  color: var(--danger-color);
+}
+.secondary-button {
+  background: var(--accent-color);
+  color: var(--highlight-color);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: background 0.2s, color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.secondary-button:hover {
+  background: var(--highlight-hover);
+  color: #fff;
+}
+
+.account-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 2px;
+  background: var(--card-background);
+  color: var(--primary-text);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.theme-dark .account-input {
+  background: #192734;
+  color: #fff;
+  border: 1px solid #38444d;
+}
+
+.interval-info {
+  font-size: 1.18rem;
+  padding: 14px 20px;
+  background: var(--color-bg-secondary, #23272f);
+  color: var(--color-text, #fff);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.plan-table {
+  font-size: 1.15rem;
+  padding: 12px 18px;
+  background: var(--color-bg-secondary, #23272f);
+  color: var(--color-text, #fff);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow-x: auto;
+}
+
+.plan-table th, .plan-table td {
+  font-size: 1.1rem;
+  padding: 10px 18px;
+}
+
+.plan-table th {
+  background: var(--color-accent, #1da1f2);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.18rem;
+  letter-spacing: 0.5px;
+}
+
+.plan-table tr:nth-child(even) {
+  background: rgba(255,255,255,0.03);
+}
+
+/* Sayaç ve tablo başlığı için kontrast ve büyüklük */
+.interval-info strong, .plan-table th {
+  font-size: 1.18rem;
+  letter-spacing: 0.5px;
+}
+
+/* Mobil uyum için */
+@media (max-width: 600px) {
+  .status-section {
+    padding: 12px 4px 12px 4px;
+    min-height: 280px;
+  }
+  .status-title {
+    font-size: 1.2rem;
+  }
+  .interval-info, .plan-table {
+    font-size: 1rem;
+    padding: 8px 4px;
+  }
+  .plan-table th, .plan-table td {
+    font-size: 0.95rem;
+    padding: 6px 4px;
+  }
+  .status-log {
+    max-height: 110px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Plan tablosu üstü için sayaç alanı */
+.plan-table-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 32px;
+  margin-bottom: 2px;
+}
+
+.countdown-display {
+  background: #1da1f2;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.08rem;
+  padding: 6px 18px;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(29,161,242,0.10);
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s;
+}
+
+@media (max-width: 600px) {
+  .countdown-display {
+    font-size: 0.95rem;
+    padding: 4px 10px;
+  }
 }

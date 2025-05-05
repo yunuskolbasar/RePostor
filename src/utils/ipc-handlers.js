@@ -47,6 +47,9 @@ function registerIpcHandlers() {
 
   // Ana işlem
   ipcMain.on("start-process", tweetProcessor.startProcess);
+
+  // Durdur butonu için yeni olay
+  ipcMain.on("stop-process", tweetProcessor.stopProcess);
 }
 
 module.exports = {

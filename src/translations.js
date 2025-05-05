@@ -83,7 +83,11 @@ const translations = {
     publishOptionDirect: "Direkt paylaş",
     publishOptionDescription: "Tweet Buffer'a eklendiğinde taslak olarak kaydedilir veya hemen paylaşılır",
     // Dil seçenekleri
-    languageTitle: "Dil Seçimi"
+    languageTitle: "Dil Seçimi",
+    xUsernameLabel: "X Hesap Kullanıcı Adı",
+    xUsernamePlaceholder: "X kullanıcı adınız",
+    xPasswordLabel: "X Hesap Şifresi",
+    xPasswordPlaceholder: "X şifreniz"
   },
   en: {
     appTitle: "RePoster App",
@@ -168,7 +172,11 @@ const translations = {
     publishOptionDirect: "Publish Directly",
     publishOptionDescription: "The tweet will be saved as a draft or published immediately after adding it to Buffer",
     // Dil seçenekleri
-    languageTitle: "Language Selection"
+    languageTitle: "Language Selection",
+    xUsernameLabel: "X Account Username",
+    xUsernamePlaceholder: "Your X username",
+    xPasswordLabel: "X Account Password",
+    xPasswordPlaceholder: "Your X password"
   }
 };
 

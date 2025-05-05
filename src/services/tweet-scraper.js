@@ -113,7 +113,41 @@ async function injectTweetParseFunctions(page) {
   });
 }
 
+/**
+ * X.com'dan en son n tweeti bulmak için
+ * @param {Object} page Puppeteer sayfası
+ * @param {number} timeout Zaman aşımı (ms)
+ * @param {number} count Kaç tweet alınacak
+ * @returns {string[]} Tweet URL dizisi
+ */
+async function findLatestTweets(page, timeout, count = 5) {
+  try {
+    await page.waitForSelector('article[data-testid="tweet"]', { timeout });
+    return await page.evaluate((count) => {
+      const tweetElements = document.querySelectorAll('article[data-testid="tweet"]');
+      if (!tweetElements.length) return [];
+      const tweets = [];
+      for (let i = 0; i < tweetElements.length && tweets.length < count; i++) {
+        const tweet = window.parseTweetFromElement(tweetElements[i], i);
+        if (tweet && !tweet.isPinned) tweets.push(tweet);
+      }
+      // Eğer pinlenmemiş tweet azsa, pinlenmişlerden de ekle
+      if (tweets.length < count) {
+        for (let i = 0; i < tweetElements.length && tweets.length < count; i++) {
+          const tweet = window.parseTweetFromElement(tweetElements[i], i);
+          if (tweet && tweet.isPinned) tweets.push(tweet);
+        }
+      }
+      return tweets.map(t => t.url);
+    }, count);
+  } catch (error) {
+    console.error("Tweet arama hatası (çoklu):", error);
+    return [];
+  }
+}
+
 module.exports = {
   findLatestTweet,
   injectTweetParseFunctions,
+  findLatestTweets,
 };
