@@ -33,7 +33,7 @@ An Electron-based desktop application that transfers tweets from X (Twitter) to 
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/RePoster.git
+git clone https://github.com/yunuskolbasar/RePoster.git
 
 # Navigate to the project folder
 cd RePoster
