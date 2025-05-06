@@ -5,19 +5,81 @@
  * @param {string} password Buffer şifresi
  * @param {Function} statusCallback Durum güncellemesi callback'i
  */
+let isLoggedIn = false;
+
 async function login(page, email, password, statusCallback) {
+  if (isLoggedIn) {
+    statusCallback("Buffer oturumu zaten açık, giriş atlanıyor...");
+    return;
+  }
+
   statusCallback("Buffer'a giriş yapılıyor...");
   await page.goto(
     "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
     { waitUntil: "networkidle2" }
   );
 
-  await page.type('input[name="email"]', email, { delay: 100 });
-  await page.type('input[name="password"]', password, { delay: 100 });
+  // Sayfanın tam olarak yüklenmesi için bekle
+  await page.waitForTimeout(5000);
+
+  // Yeni seçicileri dene
+  const emailSelectors = [
+    'input[name="email"]',
+    'input[type="email"]',
+    'input[placeholder*="email" i]',
+    'input[placeholder*="e-posta" i]',
+    'input[data-testid="email-input"]'
+  ];
+
+  const passwordSelectors = [
+    'input[name="password"]',
+    'input[type="password"]',
+    'input[placeholder*="password" i]',
+    'input[placeholder*="şifre" i]',
+    'input[data-testid="password-input"]'
+  ];
+
+  let emailInput = null;
+  let passwordInput = null;
+
+  // E-posta alanını bul
+  for (const selector of emailSelectors) {
+    try {
+      emailInput = await page.$(selector);
+      if (emailInput) {
+        statusCallback(`E-posta alanı bulundu: ${selector}`);
+        break;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+
+  // Şifre alanını bul
+  for (const selector of passwordSelectors) {
+    try {
+      passwordInput = await page.$(selector);
+      if (passwordInput) {
+        statusCallback(`Şifre alanı bulundu: ${selector}`);
+        break;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+
+  if (!emailInput || !passwordInput) {
+    throw new Error("Giriş alanları bulunamadı!");
+  }
+
+  // Giriş bilgilerini gir
+  await emailInput.type(email, { delay: 100 });
+  await passwordInput.type(password, { delay: 100 });
   await page.keyboard.press("Enter");
 
   statusCallback("Buffer'a giriş yapıldı, sayfa yükleniyor...");
   await page.waitForNavigation({ waitUntil: "networkidle2" });
+  isLoggedIn = true;
 
   // Buffer açıldığında popup çıkarsa X (kapat) butonuna tıkla
   await page.waitForTimeout(2000);
@@ -39,68 +101,40 @@ async function login(page, email, password, statusCallback) {
 /**
  * Kompozisyon sayfasını açar
  * @param {Object} page Puppeteer sayfası
- * @param {number} timeout Zaman aşımı
+ * @param {number} elementTimeout Zaman aşımı
  * @param {Function} statusCallback Durum güncellemesi callback'i
  */
-async function openComposePage(page, timeout, statusCallback) {
+async function openComposePage(page, elementTimeout, statusCallback) {
   try {
-    statusCallback("Ortadaki 'New Post' butonu aranıyor...");
-    try {
-      await page.waitForSelector('button.publish_primary_FQYGy', { timeout: timeout });
-      const buttons = await page.$$('button.publish_primary_FQYGy');
-      let found = false;
-      for (const btn of buttons) {
-        const text = await page.evaluate(el => el.textContent, btn);
-        if (text && text.toLowerCase().includes('new post')) {
-          await btn.click();
-          statusCallback("Ortadaki 'New Post' butonuna tıklandı");
-          found = true;
-          await page.waitForTimeout(1000);
-          break;
-        }
-      }
-      if (found) return true;
-    } catch (e) {
-      statusCallback("Ortadaki 'New Post' butonu bulunamadı, diğer yöntemler deneniyor...");
-    }
-    // Eski yöntemlerle devam
-    statusCallback("Post oluşturma butonu aranıyor...");
-    try {
-      await page.waitForXPath(
-        "//button[contains(text(), 'Create your next post')]",
-        { timeout: timeout }
-      );
-      const [createPostButton] = await page.$x(
-        "//button[contains(text(), 'Create your next post')]"
-      );
-      if (createPostButton) {
-        await createPostButton.click();
-        statusCallback("Post oluşturma butonu tıklandı");
-        return true;
-      }
-    } catch (error) {
-      statusCallback(
-        "Post oluşturma butonu bulunamadı. Alternatif yöntem deneniyor..."
-      );
-      // Doğrudan compose sayfasına gitmeyi dene
-      try {
-        statusCallback("Compose sayfasına yönlendiriliyor...");
-        await page.goto("https://publish.buffer.com/compose", {
-          waitUntil: "networkidle2",
-          timeout: timeout,
-        });
-        statusCallback("Compose sayfası yüklendi");
-        return true;
-      } catch (navError) {
-        statusCallback(
-          "Compose sayfasına yönlendirme başarısız: " + navError.message
-        );
+    statusCallback("Buffer'ın ana sayfasına yönlendiriliyor...");
+    await page.goto("https://publish.buffer.com/all-channels", {
+      waitUntil: "networkidle2",
+    });
+
+    statusCallback("Ortadaki mavi 'New Post' butonu aranıyor...");
+    const buttons = await page.$$('button');
+    let found = false;
+    for (const btn of buttons) {
+      const text = await page.evaluate(el => el.textContent, btn);
+      if (text && text.trim() === 'New Post') {
+        await btn.click();
+        statusCallback("'New Post' butonuna tıklandı (ortadaki mavi buton)");
+        await page.waitForTimeout(2000);
+        found = true;
+        break;
       }
     }
+    if (!found) {
+      statusCallback("'New Post' butonu bulunamadı (ortadaki mavi)!");
+      return false;
+    }
+    statusCallback("Kompozisyon sayfası açıldı");
+    return true;
   } catch (error) {
-    statusCallback("Post oluşturma sırasında hata: " + error.message);
+    statusCallback(`Kompozisyon sayfası açma hatası: ${error.message}`);
+    console.error("Kompozisyon sayfası açma hatası:", error);
+    return false;
   }
-  return false;
 }
 
 /**
@@ -117,28 +151,11 @@ async function saveAsDraft(page, timeout, statusCallback) {
       timeout: timeout,
     });
     await page.click('button[data-testid="draft-save-buttons"]');
-    statusCallback("Taslak kaydetme butonuna tıklandı, 3 saniye bekleniyor...");
-    await page.waitForTimeout(3000); // Ekstra bekleme
-    // Doğrulama: Taslaklar sekmesinde post görünüyor mu?
-    try {
-      statusCallback("Taslaklar sekmesi kontrol ediliyor...");
-      await page.goto('https://publish.buffer.com/drafts', { waitUntil: 'networkidle2', timeout: timeout });
-      await page.waitForTimeout(2000);
-      const postExists = await page.evaluate(() => {
-        const posts = Array.from(document.querySelectorAll('div[data-testid="post-preview"]'));
-        return posts.length > 0;
-      });
-      if (postExists) {
-        statusCallback("Taslak başarıyla kaydedildi ve listede görünüyor.");
-      } else {
-        statusCallback("Uyarı: Taslak kaydedildi ama listede görünmüyor!");
-      }
-    } catch (e) {
-      statusCallback("Taslak doğrulama sırasında hata oluştu: " + e.message);
-    }
+    statusCallback("Taslak kaydedildi");
+    await page.waitForTimeout(1000); // Kısa bir bekleme
     return true;
   } catch (error) {
-    statusCallback("Taslak kaydetme adımlarında hata oluştu: " + error.message);
+    statusCallback("Taslak kaydetme sırasında hata oluştu: " + error.message);
     return false;
   }
 }
@@ -198,3 +215,4 @@ module.exports = {
   saveAsDraft,
   publishNow,
 };
+

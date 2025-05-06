@@ -7,11 +7,13 @@ const tweetParser = require("./tweet-parser");
 const mediaHandler = require("./media-handler");
 const bufferClient = require("./buffer-client");
 const textInputHandler = require("./text-input-handler");
+const fs = require("fs");
+const path = require("path");
 
 let shouldStop = false;
 let browser = null;
 let page = null;
-const TWEETS_TO_CHECK = 5; // Her hesaptan kontrol edilecek tweet sayısı
+const TWEET_ID_STORE_PATH = path.join(__dirname, "tweet_ids.json");
 
 /**
  * Tweet işleme sürecini başlatır
@@ -20,6 +22,7 @@ const TWEETS_TO_CHECK = 5; // Her hesaptan kontrol edilecek tweet sayısı
  */
 async function startProcess(event, data) {
   shouldStop = false;
+  const tweetIdsStore = loadTweetIds();
   try {
     event.reply("update-status", "İşlem başlatılıyor...");
 
@@ -81,9 +84,6 @@ async function startProcess(event, data) {
       // X'e giriş yap
       await loginToX(page, xUsername, xPassword, (msg) => event.reply("update-status", msg));
 
-      let usedTweets = new Set();
-      let planTweetCount = tweetIntervals.length;
-      let planIndex = 0;
       let planLoop = async () => {
         for (let i = 0; i < tweetIntervals.length; i++) {
           if (shouldStop) break;
@@ -91,56 +91,63 @@ async function startProcess(event, data) {
           let currentAccount = accountUrl;
           let triedAccounts = [];
           let tweetSuccessfullyProcessed = false;
+          let tweetIdFound = false;
           for (const acc of [accountUrl, data.secondaryAccountUrl, data.tertiaryAccountUrl]) {
             if (!acc || triedAccounts.includes(acc)) continue;
             triedAccounts.push(acc);
             const formattedAccountUrl = formatAccountUrl(acc);
             try {
-              event.reply("update-status", `${acc} hesabında son ${TWEETS_TO_CHECK} tweet kontrol ediliyor...`);
+              event.reply("update-status", `${acc} hesabında son 10 tweet kontrol ediliyor...`);
               await page.goto(formattedAccountUrl, { waitUntil: "networkidle2" });
               await tweetScraper.injectTweetParseFunctions(page);
-              const tweetUrls = await tweetScraper.findLatestTweets(page, elementTimeout, TWEETS_TO_CHECK);
+              // Son 10 tweeti al
+              const tweetUrls = await tweetScraper.findLatestTweets(page, elementTimeout, 10);
               event.reply("update-status", `Bulunan tweetler: ${JSON.stringify(tweetUrls)}`);
-              event.reply("update-status", `usedTweets kümesi: ${JSON.stringify(Array.from(usedTweets))}`);
-              for (const url of tweetUrls) {
-                // 1-3 saniye arası rastgele bekle
-                const randomWait = 1000 + Math.floor(Math.random() * 2000);
-                await new Promise(res => setTimeout(res, randomWait));
-                if (!usedTweets.has(url)) {
-                  tweetUrl = url;
-                  event.reply("update-status", `İşlenecek yeni tweet bulundu: ${tweetUrl}`);
-                  break;
+              // Tweet ID store'da bu hesap için alan yoksa oluştur
+              if (!tweetIdsStore[acc]) tweetIdsStore[acc] = [];
+              for (const candidateUrl of tweetUrls) {
+                const normalizedUrl = normalizeTweetUrl(candidateUrl);
+                const tweetId = extractTweetIdFromUrl(normalizedUrl);
+                if (!tweetId) continue;
+                if (!tweetIdsStore[acc].includes(tweetId)) {
+                  // Tweet daha önce kopyalanmamış, işleme al
+                  event.reply("update-status", `İşlenecek yeni tweet bulundu: ${candidateUrl}`);
+                  let success = false;
+                  for (let retry = 0; retry < 2 && !success; retry++) {
+                    const result = await processTweet(
+                      page,
+                      candidateUrl,
+                      elementTimeout,
+                      bufferEmail,
+                      bufferPassword,
+                      autoPublish,
+                      pageTimeout,
+                      (msg) => event.reply("update-status", msg)
+                    );
+                    if (result) {
+                      tweetIdsStore[acc].push(tweetId);
+                      saveTweetIds(tweetIdsStore);
+                      event.reply("update-status", `Tweet başarıyla kopyalandı ve kaydedildi: ${candidateUrl}`);
+                      tweetSuccessfullyProcessed = true;
+                      tweetIdFound = true;
+                      break;
+                    } else {
+                      event.reply("update-status", `Tweet işlenemedi, tekrar deneniyor: ${candidateUrl}`);
+                    }
+                  }
+                  if (tweetIdFound) break;
                 } else {
-                  event.reply("update-status", `Tweet zaten işlenmiş: ${url}`);
+                  event.reply("update-status", `Tweet zaten kopyalanmış: ${candidateUrl}`);
                 }
               }
-              if (tweetUrl) {
-                break;
-              }
+              if (tweetIdFound) break;
             } catch (err) {
               event.reply("update-status", `${acc} için tweet çekilemedi, sıradaki hesaba geçiliyor. Hata: ${err.message}`);
               continue;
             }
           }
-          if (!tweetUrl) {
-            event.reply("update-status", "Hiçbir hesaptan yeni tweet bulunamadı, bu aralık atlanıyor.");
-            continue;
-          }
-          usedTweets.add(tweetUrl);
-          // Tweet içeriğini işle
-          const result = await processTweet(
-            page,
-            tweetUrl,
-            elementTimeout,
-            bufferEmail,
-            bufferPassword,
-            autoPublish,
-            pageTimeout,
-            (msg) => event.reply("update-status", msg)
-          );
-          tweetSuccessfullyProcessed = !!result;
-          if (!tweetSuccessfullyProcessed) {
-            event.reply("update-status", "Tweet işlenemedi, sıradaki aralığa geçiliyor.");
+          if (!tweetIdFound) {
+            event.reply("update-status", "Hiçbir hesaptan yeni tweet bulunamadı veya hepsi daha önce kopyalanmış, bu aralık atlanıyor.");
             continue;
           }
           // Sadece başarılı işlendiyse bekle
@@ -159,7 +166,7 @@ async function startProcess(event, data) {
         await planLoop();
         if (shouldStop) break;
         // Yeni plan oluştur (rastgele aralıklar)
-        const tweetCount = planTweetCount;
+        const tweetCount = tweetIntervals.length;
         tweetIntervals = generateRandomIntervals(tweetCount);
         if (event.reply) event.reply('new-plan', tweetCount);
         event.reply("update-status", "Yeni 1 saatlik plan başlatıldı!");
@@ -421,7 +428,26 @@ function extractTweetIdFromUrl(url) {
   return match ? match[1] : null;
 }
 
+// Tweet URL'sini normalize eden yardımcı fonksiyon
+function normalizeTweetUrl(url) {
+  return url ? url.split('?')[0].replace(/\/$/, '') : url;
+}
+
+function loadTweetIds() {
+  try {
+    if (!fs.existsSync(TWEET_ID_STORE_PATH)) return {};
+    return JSON.parse(fs.readFileSync(TWEET_ID_STORE_PATH, "utf-8"));
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTweetIds(data) {
+  fs.writeFileSync(TWEET_ID_STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+}
+
 module.exports = {
   startProcess,
   stopProcess,
 };
+
