@@ -186,7 +186,7 @@ async function saveAsDraft(page, timeout, statusCallback) {
     });
     await page.click('button[data-testid="draft-save-buttons"]');
     statusCallback("Taslak kaydedildi");
-    await page.waitForTimeout(1000); // Kısa bir bekleme
+    await waitForTimeout(1000); // Kısa bir bekleme
     return true;
   } catch (error) {
     statusCallback("Taslak kaydetme sırasında hata oluştu: " + error.message);
@@ -211,7 +211,7 @@ async function addToQueue(page, timeout, statusCallback) {
     }
     await customizeBtn.click();
     statusCallback("'Customize for each network' butonuna tıklandı");
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     // Add to Queue butonunu bul ve tıkla
     statusCallback("'Add to Queue' butonu aranıyor...");
@@ -223,7 +223,7 @@ async function addToQueue(page, timeout, statusCallback) {
     }
     await addToQueueBtn.click();
     statusCallback("'Add to Queue' butonuna tıklandı");
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     // Publish Now butonlarını bul ve hepsine tıkla
     while (true) {
@@ -235,7 +235,7 @@ async function addToQueue(page, timeout, statusCallback) {
       }
       await publishNowBtn.click();
       statusCallback("'Publish Now' butonuna tıklandı");
-      await page.waitForTimeout(2000);
+      await waitForTimeout(2000);
     }
 
     statusCallback("Post başarıyla kuyruğa eklendi");
@@ -257,7 +257,7 @@ async function publishNow(page, timeout, statusCallback) {
   try {
     statusCallback("Buffer kuyruğu sekmesine gidiliyor...");
     await page.goto("https://publish.buffer.com/all-channels?tab=queue", { waitUntil: "networkidle2" });
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     statusCallback("Post paylaşılmadan önce 'Customize for each network' butonuna tıklanıyor...");
     await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
@@ -268,7 +268,7 @@ async function publishNow(page, timeout, statusCallback) {
     }
     await customizeBtn.click();
     statusCallback("'Customize for each network' butonuna tıklandı");
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     // Add to Queue butonunu bul ve tıkla
     statusCallback("'Add to Queue' butonu aranıyor...");
@@ -280,7 +280,7 @@ async function publishNow(page, timeout, statusCallback) {
     }
     await addToQueueBtn.click();
     statusCallback("'Add to Queue' butonuna tıklandı");
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     // Share Now seçeneğini bul ve tıkla
     statusCallback("'Share Now' seçeneği aranıyor...");
@@ -292,7 +292,7 @@ async function publishNow(page, timeout, statusCallback) {
     }
     await shareNowBtn.click();
     statusCallback("'Share Now' seçeneğine tıklandı");
-    await page.waitForTimeout(2000);
+    await waitForTimeout(2000);
 
     statusCallback("Post başarıyla paylaşıldı");
     return true;
