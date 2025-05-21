@@ -15,7 +15,16 @@ async function login(page, email, password, statusCallback) {
             try {
                 browser = await puppeteer.launch({
                     headless: false,
-                    args: ["--start-maximized"]
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--disable-gpu',
+                        '--window-size=1920,1080'
+                    ],
+                    ignoreHTTPSErrors: true,
+                    timeout: 30000
                 });
                 statusCallback("Tarayıcı başarıyla başlatıldı");
             } catch (error) {
@@ -27,7 +36,10 @@ async function login(page, email, password, statusCallback) {
         statusCallback("Buffer'a giriş yapılıyor...");
         await page.goto(
             "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
-            { waitUntil: "networkidle2" }
+            { 
+                waitUntil: "networkidle2",
+                timeout: 30000 
+            }
         );
 
         // Sayfanın tam olarak yüklenmesi için bekle
