@@ -68,8 +68,20 @@ async function startProcess(event, data) {
     if (!browser) {
       event.reply("update-status", "Tarayıcı başlatılıyor...");
       browser = await puppeteer.launch({
+        product: 'chrome',
+        channel: 'chrome',
         headless: headlessMode,
-        args: ["--start-maximized"],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+          '--window-size=1920,1080',
+          '--start-maximized'
+        ],
+        ignoreHTTPSErrors: true,
+        timeout: 60000
       });
     }
     // Sayfa oluştur (ilk seferde veya sayfa kapalıysa)
@@ -367,7 +379,7 @@ async function processTweet(
  */
 async function loginToX(page, username, password, statusCallback) {
   statusCallback("X hesabı oturum kontrolü yapılıyor...");
-  await page.goto("https://x.com/home", { waitUntil: "networkidle2" });
+  await page.goto("https://x.com/home", { waitUntil: "networkidle2", timeout: 60000 });
 
   // Oturum açık mı kontrol et (profil simgesi, tweet butonu vs.)
   const isLoggedIn = await page.$('a[aria-label="Profile"], div[data-testid="SideNav_AccountSwitcher_Button"], a[aria-label="Tweet"]');
@@ -377,15 +389,21 @@ async function loginToX(page, username, password, statusCallback) {
   }
 
   statusCallback("X hesabına giriş yapılıyor...");
-  await page.goto("https://x.com/login", { waitUntil: "networkidle2" });
-  await page.waitForSelector('input[name="text"]', { timeout: 20000 });
+  await page.goto("https://x.com/login", { waitUntil: "networkidle2", timeout: 60000 });
+  
+  // Kullanıcı adı girişi
+  await page.waitForSelector('input[name="text"]', { timeout: 60000 });
   await page.type('input[name="text"]', username, { delay: 100 });
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(2000);
-  await page.waitForSelector('input[name="password"]', { timeout: 20000 });
+  await page.waitForTimeout(5000);
+
+  // Şifre girişi
+  await page.waitForSelector('input[name="password"]', { timeout: 60000 });
   await page.type('input[name="password"]', password, { delay: 100 });
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(5000);
+  
+  // Giriş sonrası bekleme
+  await page.waitForTimeout(10000);
   statusCallback("X hesabına giriş yapıldı.");
 }
 
