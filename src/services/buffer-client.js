@@ -1,3 +1,27 @@
+const puppeteer = require('puppeteer');
+
+// Chrome yolları
+const CHROME_PATHS = [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium'
+];
+
+async function findChromePath() {
+    for (const path of CHROME_PATHS) {
+        try {
+            const { execSync } = require('child_process');
+            execSync(`test -f ${path}`);
+            return path;
+        } catch (e) {
+            continue;
+        }
+    }
+    return null;
+}
+
 /**
  * Buffer'a giriş yapar
  * @param {Object} page Puppeteer sayfası
