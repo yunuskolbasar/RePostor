@@ -14,6 +14,8 @@ async function login(page, email, password, statusCallback) {
             statusCallback("Yeni bir tarayıcı oturumu başlatılıyor...");
             try {
                 browser = await puppeteer.launch({
+                    product: 'chrome',
+                    channel: 'chrome',
                     args: [
                         '--no-sandbox',
                         '--disable-setuid-sandbox',
