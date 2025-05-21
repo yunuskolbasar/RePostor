@@ -68,8 +68,20 @@ async function startProcess(event, data) {
     if (!browser) {
       event.reply("update-status", "Tarayıcı başlatılıyor...");
       browser = await puppeteer.launch({
+        product: 'chrome',
+        channel: 'chrome',
         headless: headlessMode,
-        args: ["--start-maximized"],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+          '--window-size=1920,1080',
+          '--start-maximized'
+        ],
+        ignoreHTTPSErrors: true,
+        timeout: 60000
       });
     }
     // Sayfa oluştur (ilk seferde veya sayfa kapalıysa)
