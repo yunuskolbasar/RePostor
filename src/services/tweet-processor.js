@@ -168,7 +168,7 @@ async function startProcess(event, data) {
             if (event.reply) event.reply('start-countdown', waitSeconds);
             for (let s = 0; s < waitSeconds; s++) {
               if (shouldStop) break;
-              await new Promise(res => setTimeout(res, 1000));
+              await waitForTimeout(1000);
             }
           }
         }
@@ -350,7 +350,7 @@ async function processTweet(
     statusCallback("Medya yükleniyor...");
     const inputUploadHandle = await page.$('input[type="file"]');
     await inputUploadHandle.uploadFile(mediaPath);
-    await page.waitForTimeout(5000);
+    await waitForTimeout(5000);
 
     // Post işlemini tamamla (paylaş veya kuyruğa ekle)
     if (autoPublish) {
@@ -395,7 +395,7 @@ async function loginToX(page, username, password, statusCallback) {
   await page.waitForSelector('input[name="text"]', { timeout: 60000 });
   await page.type('input[name="text"]', username, { delay: 100 });
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(5000);
+  await waitForTimeout(5000);
 
   // Şifre girişi
   await page.waitForSelector('input[name="password"]', { timeout: 60000 });
@@ -403,7 +403,7 @@ async function loginToX(page, username, password, statusCallback) {
   await page.keyboard.press("Enter");
   
   // Giriş sonrası bekleme
-  await page.waitForTimeout(10000);
+  await waitForTimeout(10000);
   statusCallback("X hesabına giriş yapıldı.");
 }
 
@@ -462,6 +462,11 @@ function loadTweetIds() {
 
 function saveTweetIds(data) {
   fs.writeFileSync(TWEET_ID_STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+}
+
+// page.waitForTimeout(x) yerine kullanılacak fonksiyon
+async function waitForTimeout(ms) {
+  return new Promise(res => setTimeout(res, ms));
 }
 
 module.exports = {
