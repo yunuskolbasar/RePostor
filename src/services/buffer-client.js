@@ -1,5 +1,10 @@
 const puppeteer = require('puppeteer');
 
+// page.waitForTimeout(x) yerine kullanılacak fonksiyon
+async function waitForTimeout(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
 let browser = null;
 let isLoggedIn = false;
 
@@ -45,7 +50,7 @@ async function login(page, email, password, statusCallback) {
         );
 
         // Sayfanın tam olarak yüklenmesi için bekle
-        await page.waitForTimeout(5000);
+        await waitForTimeout(5000);
 
         // Yeni seçicileri dene
         const emailSelectors = [
@@ -107,7 +112,7 @@ async function login(page, email, password, statusCallback) {
         isLoggedIn = true;
 
         // Buffer açıldığında popup çıkarsa X (kapat) butonuna tıkla
-        await page.waitForTimeout(2000);
+        await waitForTimeout(2000);
         // Öncelikli olarak Buffer'ın yeni popup X butonunu dene
         let closeBtn = await page.$('button.publish_close_ObJJi');
         if (!closeBtn) {
@@ -116,7 +121,7 @@ async function login(page, email, password, statusCallback) {
         }
         if (closeBtn) {
             await closeBtn.click();
-            await page.waitForTimeout(2000); // Kapatma sonrası bekle
+            await waitForTimeout(2000); // Kapatma sonrası bekle
             statusCallback("Buffer popup'ı varsa X ile kapatıldı ve 2 sn beklendi");
         } else {
             statusCallback("Buffer popup'ı bulunamadı veya kapatılacak popup yok");
