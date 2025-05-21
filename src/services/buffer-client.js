@@ -14,19 +14,8 @@ async function login(page, email, password, statusCallback) {
             statusCallback("Yeni bir tarayıcı oturumu başlatılıyor...");
             try {
                 browser = await puppeteer.launch({
-                    product: 'chrome',
-                    channel: 'chrome',
-                    args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-accelerated-2d-canvas',
-                        '--disable-gpu',
-                        '--window-size=1920,1080'
-                    ],
                     headless: false,
-                    ignoreHTTPSErrors: true,
-                    timeout: 60000
+                    args: ["--start-maximized"]
                 });
                 statusCallback("Tarayıcı başarıyla başlatıldı");
             } catch (error) {
