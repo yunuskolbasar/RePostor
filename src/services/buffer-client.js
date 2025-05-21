@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const { execSync } = require('child_process');
 
 // Chrome yolları
 const CHROME_PATHS = [
@@ -10,13 +11,19 @@ const CHROME_PATHS = [
 ];
 
 async function findChromePath() {
-    for (const path of CHROME_PATHS) {
-        try {
-            const { execSync } = require('child_process');
-            execSync(`test -f ${path}`);
-            return path;
-        } catch (e) {
-            continue;
+    try {
+        // Önce which komutu ile dene
+        const chromePath = execSync('which google-chrome').toString().trim();
+        if (chromePath) return chromePath;
+    } catch (e) {
+        // which komutu başarısız olursa, alternatif yolları dene
+        for (const path of CHROME_PATHS) {
+            try {
+                execSync(`test -f ${path}`);
+                return path;
+            } catch (e) {
+                continue;
+            }
         }
     }
     return null;
@@ -48,23 +55,35 @@ async function login(page, email, password, statusCallback) {
 
     if (!browser) {
       statusCallback("Yeni bir tarayıcı oturumu başlatılıyor...");
-      browser = await puppeteer.launch({
-        executablePath: chromePath,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--disable-gpu'
-        ],
-        headless: false
-      });
+      try {
+        browser = await puppeteer.launch({
+          executablePath: chromePath,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+            '--window-size=1920,1080'
+          ],
+          headless: false,
+          ignoreHTTPSErrors: true,
+          timeout: 60000
+        });
+        statusCallback("Tarayıcı başarıyla başlatıldı");
+      } catch (error) {
+        statusCallback(`Tarayıcı başlatma hatası: ${error.message}`);
+        throw error;
+      }
     }
 
     statusCallback("Buffer'a giriş yapılıyor...");
     await page.goto(
       "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
-      { waitUntil: "networkidle2" }
+      { 
+        waitUntil: "networkidle2",
+        timeout: 60000 
+      }
     );
 
     // Sayfanın tam olarak yüklenmesi için bekle
