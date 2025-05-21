@@ -79,6 +79,7 @@ const defaultSettings = {
 let currentSettings = { ...defaultSettings };
 let currentLanguage = "tr"; // Varsayılan dil
 let isProcessing = false;
+let stopProcessing = false;
 
 // Sayaç ve aralıklar için alan ekle
 let tweetIntervals = [];

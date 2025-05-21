@@ -87,7 +87,10 @@ const translations = {
     xUsernameLabel: "X Hesap Kullanıcı Adı",
     xUsernamePlaceholder: "X kullanıcı adınız",
     xPasswordLabel: "X Hesap Şifresi",
-    xPasswordPlaceholder: "X şifreniz"
+    xPasswordPlaceholder: "X şifreniz",
+    startProcess: "İşlemi Başlat",
+    stopProcess: "İşlemi Durdur",
+    processStopped: "İşlem durduruldu"
   },
   en: {
     appTitle: "RePoster App",
@@ -176,7 +179,10 @@ const translations = {
     xUsernameLabel: "X Account Username",
     xUsernamePlaceholder: "Your X username",
     xPasswordLabel: "X Account Password",
-    xPasswordPlaceholder: "Your X password"
+    xPasswordPlaceholder: "Your X password",
+    startProcess: "Start Process",
+    stopProcess: "Stop Process",
+    processStopped: "Process stopped"
   }
 };
 

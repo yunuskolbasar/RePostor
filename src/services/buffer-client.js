@@ -170,10 +170,42 @@ async function addToQueue(page, timeout, statusCallback) {
   try {
     statusCallback("Post kuyruğa eklenmeden önce 'Customize for each network' butonuna tıklanıyor...");
     await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
-    await page.click('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    const customizeBtn = await page.$('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    if (!customizeBtn) {
+      statusCallback("'Customize for each network' butonu bulunamadı!");
+      return false;
+    }
+    await customizeBtn.click();
     statusCallback("'Customize for each network' butonuna tıklandı");
-    await page.waitForTimeout(1000);
-    return await saveAsDraft(page, timeout, statusCallback);
+    await page.waitForTimeout(2000);
+
+    // Add to Queue butonunu bul ve tıkla
+    statusCallback("'Add to Queue' butonu aranıyor...");
+    await page.waitForSelector('button[data-testid="stacked-save-buttons"]', { timeout: timeout });
+    const addToQueueBtn = await page.$('button[data-testid="stacked-save-buttons"]');
+    if (!addToQueueBtn) {
+      statusCallback("'Add to Queue' butonu bulunamadı!");
+      return false;
+    }
+    await addToQueueBtn.click();
+    statusCallback("'Add to Queue' butonuna tıklandı");
+    await page.waitForTimeout(2000);
+
+    // Publish Now butonlarını bul ve hepsine tıkla
+    while (true) {
+      statusCallback("'Publish Now' butonu aranıyor...");
+      const publishNowBtn = await page.$('button.publish_base_GTmOA.publish_base_9SxrA.publish_medium_mA1GB.publish_secondary_-bRVa');
+      if (!publishNowBtn) {
+        statusCallback("'Publish Now' butonu bulunamadı, işlem tamamlandı.");
+        break;
+      }
+      await publishNowBtn.click();
+      statusCallback("'Publish Now' butonuna tıklandı");
+      await page.waitForTimeout(2000);
+    }
+
+    statusCallback("Post başarıyla kuyruğa eklendi");
+    return true;
   } catch (error) {
     statusCallback("Kuyruğa ekleme adımlarında hata oluştu: " + error.message);
     return false;
@@ -189,17 +221,45 @@ async function addToQueue(page, timeout, statusCallback) {
  */
 async function publishNow(page, timeout, statusCallback) {
   try {
+    statusCallback("Buffer kuyruğu sekmesine gidiliyor...");
+    await page.goto("https://publish.buffer.com/all-channels?tab=queue", { waitUntil: "networkidle2" });
+    await page.waitForTimeout(2000);
+
     statusCallback("Post paylaşılmadan önce 'Customize for each network' butonuna tıklanıyor...");
     await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
-    await page.click('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    const customizeBtn = await page.$('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
+    if (!customizeBtn) {
+      statusCallback("'Customize for each network' butonu bulunamadı!");
+      return false;
+    }
+    await customizeBtn.click();
     statusCallback("'Customize for each network' butonuna tıklandı");
-    await page.waitForTimeout(1000);
-    statusCallback("Post paylaşılıyor...");
-    const publishSelector = 'button[data-testid="publish-button"]';
-    await page.waitForSelector(publishSelector, {
-      timeout: timeout,
-    });
-    await page.click(publishSelector);
+    await page.waitForTimeout(2000);
+
+    // Add to Queue butonunu bul ve tıkla
+    statusCallback("'Add to Queue' butonu aranıyor...");
+    await page.waitForSelector('button[data-testid="stacked-save-buttons"]', { timeout: timeout });
+    const addToQueueBtn = await page.$('button[data-testid="stacked-save-buttons"]');
+    if (!addToQueueBtn) {
+      statusCallback("'Add to Queue' butonu bulunamadı!");
+      return false;
+    }
+    await addToQueueBtn.click();
+    statusCallback("'Add to Queue' butonuna tıklandı");
+    await page.waitForTimeout(2000);
+
+    // Share Now seçeneğini bul ve tıkla
+    statusCallback("'Share Now' seçeneği aranıyor...");
+    await page.waitForSelector('#SHARE_NOW', { timeout: timeout });
+    const shareNowBtn = await page.$('#SHARE_NOW');
+    if (!shareNowBtn) {
+      statusCallback("'Share Now' seçeneği bulunamadı!");
+      return false;
+    }
+    await shareNowBtn.click();
+    statusCallback("'Share Now' seçeneğine tıklandı");
+    await page.waitForTimeout(2000);
+
     statusCallback("Post başarıyla paylaşıldı");
     return true;
   } catch (error) {

@@ -15,7 +15,7 @@ async function downloadTweetPhoto(page, timeout, statusCallback) {
   try {
     statusCallback("Fotoğraf kontrol ediliyor...");
     await page.waitForSelector('div[data-testid="tweetPhoto"] img', {
-      timeout: timeout,
+      timeout: timeout || 30000,
     });
 
     const imgUrl = await page.evaluate(() => {
@@ -69,15 +69,27 @@ async function downloadTweetVideo(tweetUrl, statusCallback) {
   return null;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Geçici medya dosyasını temizler
  * @param {string} mediaPath Medya dosya yolu
  * @param {Function} statusCallback Durum güncellemesi callback'i
  */
-function cleanupMediaFile(mediaPath, statusCallback) {
+async function cleanupMediaFile(mediaPath, statusCallback) {
   if (fs.existsSync(mediaPath)) {
-    fs.unlinkSync(mediaPath);
-    statusCallback("Geçici dosya silindi");
+    try {
+      await sleep(2000); // 2 saniye bekle
+      fs.unlinkSync(mediaPath);
+      statusCallback("Geçici dosya silindi");
+    } catch (error) {
+      console.error("Dosya silme hatası:", error);
+      if (error.code !== 'EBUSY') {
+        throw error;
+      }
+    }
   }
 }
 
