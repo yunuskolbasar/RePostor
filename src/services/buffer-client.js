@@ -153,7 +153,7 @@ async function openComposePage(page, elementTimeout, statusCallback) {
       if (text && text.trim() === 'New Post') {
         await btn.click();
         statusCallback("'New Post' butonuna tıklandı (ortadaki mavi buton)");
-        await page.waitForTimeout(2000);
+        await waitForTimeout(2000);
         found = true;
         break;
       }
