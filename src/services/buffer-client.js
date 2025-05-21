@@ -27,10 +27,7 @@ async function login(page, email, password, statusCallback) {
         statusCallback("Buffer'a giriş yapılıyor...");
         await page.goto(
             "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
-            { 
-                waitUntil: "networkidle2",
-                timeout: 60000 
-            }
+            { waitUntil: "networkidle2" }
         );
 
         // Sayfanın tam olarak yüklenmesi için bekle
@@ -42,7 +39,12 @@ async function login(page, email, password, statusCallback) {
             'input[type="email"]',
             'input[placeholder*="email" i]',
             'input[placeholder*="e-posta" i]',
-            'input[data-testid="email-input"]'
+            'input[data-testid="email-input"]',
+            'input[aria-label*="email" i]',
+            'input[aria-label*="e-posta" i]',
+            'input[class*="email" i]',
+            'input[class*="login" i]',
+            'input[class*="input" i]'
         ];
 
         const passwordSelectors = [
@@ -50,7 +52,12 @@ async function login(page, email, password, statusCallback) {
             'input[type="password"]',
             'input[placeholder*="password" i]',
             'input[placeholder*="şifre" i]',
-            'input[data-testid="password-input"]'
+            'input[data-testid="password-input"]',
+            'input[aria-label*="password" i]',
+            'input[aria-label*="şifre" i]',
+            'input[class*="password" i]',
+            'input[class*="login" i]',
+            'input[class*="input" i]'
         ];
 
         let emailInput = null;
@@ -87,9 +94,18 @@ async function login(page, email, password, statusCallback) {
         }
 
         // Giriş bilgilerini gir
+        await emailInput.click();
+        await page.waitForTimeout(1000);
         await emailInput.type(email, { delay: 100 });
+        await page.waitForTimeout(1000);
+        
+        await passwordInput.click();
+        await page.waitForTimeout(1000);
         await passwordInput.type(password, { delay: 100 });
+        await page.waitForTimeout(1000);
+        
         await page.keyboard.press("Enter");
+        await page.waitForTimeout(2000);
 
         statusCallback("Buffer'a giriş yapıldı, sayfa yükleniyor...");
         await page.waitForNavigation({ waitUntil: "networkidle2" });
