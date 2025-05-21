@@ -1,171 +1,128 @@
 const puppeteer = require('puppeteer');
-const { execSync } = require('child_process');
 
-// Chrome yolları
-const CHROME_PATHS = [
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/snap/bin/chromium'
-];
+let browser = null;
+let isLoggedIn = false;
 
-async function findChromePath() {
+async function login(page, email, password, statusCallback) {
     try {
-        // Önce which komutu ile dene
-        const chromePath = execSync('which google-chrome').toString().trim();
-        if (chromePath) return chromePath;
-    } catch (e) {
-        // which komutu başarısız olursa, alternatif yolları dene
-        for (const path of CHROME_PATHS) {
+        if (isLoggedIn) {
+            statusCallback("Buffer oturumu zaten açık, giriş atlanıyor...");
+            return;
+        }
+
+        if (!browser) {
+            statusCallback("Yeni bir tarayıcı oturumu başlatılıyor...");
             try {
-                execSync(`test -f ${path}`);
-                return path;
+                browser = await puppeteer.launch({
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--disable-gpu',
+                        '--window-size=1920,1080'
+                    ],
+                    headless: false,
+                    ignoreHTTPSErrors: true,
+                    timeout: 60000
+                });
+                statusCallback("Tarayıcı başarıyla başlatıldı");
+            } catch (error) {
+                statusCallback(`Tarayıcı başlatma hatası: ${error.message}`);
+                throw error;
+            }
+        }
+
+        statusCallback("Buffer'a giriş yapılıyor...");
+        await page.goto(
+            "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
+            { 
+                waitUntil: "networkidle2",
+                timeout: 60000 
+            }
+        );
+
+        // Sayfanın tam olarak yüklenmesi için bekle
+        await page.waitForTimeout(5000);
+
+        // Yeni seçicileri dene
+        const emailSelectors = [
+            'input[name="email"]',
+            'input[type="email"]',
+            'input[placeholder*="email" i]',
+            'input[placeholder*="e-posta" i]',
+            'input[data-testid="email-input"]'
+        ];
+
+        const passwordSelectors = [
+            'input[name="password"]',
+            'input[type="password"]',
+            'input[placeholder*="password" i]',
+            'input[placeholder*="şifre" i]',
+            'input[data-testid="password-input"]'
+        ];
+
+        let emailInput = null;
+        let passwordInput = null;
+
+        // E-posta alanını bul
+        for (const selector of emailSelectors) {
+            try {
+                emailInput = await page.$(selector);
+                if (emailInput) {
+                    statusCallback(`E-posta alanı bulundu: ${selector}`);
+                    break;
+                }
             } catch (e) {
                 continue;
             }
         }
-    }
-    return null;
-}
 
-/**
- * Buffer'a giriş yapar
- * @param {Object} page Puppeteer sayfası
- * @param {string} email Buffer e-posta adresi
- * @param {string} password Buffer şifresi
- * @param {Function} statusCallback Durum güncellemesi callback'i
- */
-let isLoggedIn = false;
-let browser = null;
+        // Şifre alanını bul
+        for (const selector of passwordSelectors) {
+            try {
+                passwordInput = await page.$(selector);
+                if (passwordInput) {
+                    statusCallback(`Şifre alanı bulundu: ${selector}`);
+                    break;
+                }
+            } catch (e) {
+                continue;
+            }
+        }
 
-async function login(page, email, password, statusCallback) {
-  try {
-    if (isLoggedIn) {
-      statusCallback("Buffer oturumu zaten açık, giriş atlanıyor...");
-      return;
-    }
+        if (!emailInput || !passwordInput) {
+            throw new Error("Giriş alanları bulunamadı!");
+        }
 
-    statusCallback("Chrome yolu kontrol ediliyor...");
-    const chromePath = await findChromePath();
-    if (!chromePath) {
-      throw new Error("Chrome bulunamadı! Lütfen Chrome veya Chromium'un yüklü olduğundan emin olun.");
-    }
-    statusCallback(`Chrome bulundu: ${chromePath}`);
+        // Giriş bilgilerini gir
+        await emailInput.type(email, { delay: 100 });
+        await passwordInput.type(password, { delay: 100 });
+        await page.keyboard.press("Enter");
 
-    if (!browser) {
-      statusCallback("Yeni bir tarayıcı oturumu başlatılıyor...");
-      try {
-        browser = await puppeteer.launch({
-          executablePath: chromePath,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--window-size=1920,1080'
-          ],
-          headless: false,
-          ignoreHTTPSErrors: true,
-          timeout: 60000
-        });
-        statusCallback("Tarayıcı başarıyla başlatıldı");
-      } catch (error) {
-        statusCallback(`Tarayıcı başlatma hatası: ${error.message}`);
+        statusCallback("Buffer'a giriş yapıldı, sayfa yükleniyor...");
+        await page.waitForNavigation({ waitUntil: "networkidle2" });
+        isLoggedIn = true;
+
+        // Buffer açıldığında popup çıkarsa X (kapat) butonuna tıkla
+        await page.waitForTimeout(2000);
+        // Öncelikli olarak Buffer'ın yeni popup X butonunu dene
+        let closeBtn = await page.$('button.publish_close_ObJJi');
+        if (!closeBtn) {
+            // Eski veya farklı popup'lar için genel close butonlarını dene
+            closeBtn = await page.$('button[aria-label="Close"], button.close, .close, button[title="Close"], button[aria-label="Dismiss"], button[aria-label="close"]');
+        }
+        if (closeBtn) {
+            await closeBtn.click();
+            await page.waitForTimeout(2000); // Kapatma sonrası bekle
+            statusCallback("Buffer popup'ı varsa X ile kapatıldı ve 2 sn beklendi");
+        } else {
+            statusCallback("Buffer popup'ı bulunamadı veya kapatılacak popup yok");
+        }
+    } catch (error) {
+        statusCallback("Giriş yapılırken hata oluştu: " + error.message);
         throw error;
-      }
     }
-
-    statusCallback("Buffer'a giriş yapılıyor...");
-    await page.goto(
-      "https://login.buffer.com/login?plan=free&cycle=year&cta=bufferSite-globalNav-login-1",
-      { 
-        waitUntil: "networkidle2",
-        timeout: 60000 
-      }
-    );
-
-    // Sayfanın tam olarak yüklenmesi için bekle
-    await page.waitForTimeout(5000);
-
-    // Yeni seçicileri dene
-    const emailSelectors = [
-      'input[name="email"]',
-      'input[type="email"]',
-      'input[placeholder*="email" i]',
-      'input[placeholder*="e-posta" i]',
-      'input[data-testid="email-input"]'
-    ];
-
-    const passwordSelectors = [
-      'input[name="password"]',
-      'input[type="password"]',
-      'input[placeholder*="password" i]',
-      'input[placeholder*="şifre" i]',
-      'input[data-testid="password-input"]'
-    ];
-
-    let emailInput = null;
-    let passwordInput = null;
-
-    // E-posta alanını bul
-    for (const selector of emailSelectors) {
-      try {
-        emailInput = await page.$(selector);
-        if (emailInput) {
-          statusCallback(`E-posta alanı bulundu: ${selector}`);
-          break;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    // Şifre alanını bul
-    for (const selector of passwordSelectors) {
-      try {
-        passwordInput = await page.$(selector);
-        if (passwordInput) {
-          statusCallback(`Şifre alanı bulundu: ${selector}`);
-          break;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-
-    if (!emailInput || !passwordInput) {
-      throw new Error("Giriş alanları bulunamadı!");
-    }
-
-    // Giriş bilgilerini gir
-    await emailInput.type(email, { delay: 100 });
-    await passwordInput.type(password, { delay: 100 });
-    await page.keyboard.press("Enter");
-
-    statusCallback("Buffer'a giriş yapıldı, sayfa yükleniyor...");
-    await page.waitForNavigation({ waitUntil: "networkidle2" });
-    isLoggedIn = true;
-
-    // Buffer açıldığında popup çıkarsa X (kapat) butonuna tıkla
-    await page.waitForTimeout(2000);
-    // Öncelikli olarak Buffer'ın yeni popup X butonunu dene
-    let closeBtn = await page.$('button.publish_close_ObJJi');
-    if (!closeBtn) {
-      // Eski veya farklı popup'lar için genel close butonlarını dene
-      closeBtn = await page.$('button[aria-label="Close"], button.close, .close, button[title="Close"], button[aria-label="Dismiss"], button[aria-label="close"]');
-    }
-    if (closeBtn) {
-      await closeBtn.click();
-      await page.waitForTimeout(2000); // Kapatma sonrası bekle
-      statusCallback("Buffer popup'ı varsa X ile kapatıldı ve 2 sn beklendi");
-    } else {
-      statusCallback("Buffer popup'ı bulunamadı veya kapatılacak popup yok");
-    }
-  } catch (error) {
-    statusCallback("Giriş yapılırken hata oluştu: " + error.message);
-  }
 }
 
 /**
