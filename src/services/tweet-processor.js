@@ -127,11 +127,11 @@ async function startProcess(event, data) {
                   let success = false;
                   for (let retry = 0; retry < 2 && !success; retry++) {
                     const result = await processTweet(
-                      page,
                       candidateUrl,
-                      elementTimeout,
+                      page,
                       bufferEmail,
                       bufferPassword,
+                      elementTimeout,
                       autoPublish,
                       pageTimeout,
                       (msg) => event.reply("update-status", msg)
@@ -264,108 +264,107 @@ async function findLatestTweetFromAccount(
 
 /**
  * Tweet'i işler
- * @param {Object} page Tarayıcı sayfası
  * @param {string} tweetUrl Tweet URL'si
- * @param {number} elementTimeout Element zaman aşımı
+ * @param {Object} page Tarayıcı sayfası
  * @param {string} bufferEmail Buffer e-posta
  * @param {string} bufferPassword Buffer şifre
+ * @param {number} elementTimeout Element zaman aşımı
  * @param {boolean} autoPublish Otomatik paylaşım
  * @param {number} pageTimeout Sayfa zaman aşımı
  * @param {Function} statusCallback Durum güncellemesi callback'i
  * @returns {boolean} Başarılı ise true, değilse false
  */
 async function processTweet(
-  page,
   tweetUrl,
-  elementTimeout,
+  page,
   bufferEmail,
   bufferPassword,
+  elementTimeout,
   autoPublish,
   pageTimeout,
   statusCallback
 ) {
   try {
-    // Tweet sayfasına git
+    statusCallback(`Tweet işleniyor: ${tweetUrl}`);
     await page.goto(tweetUrl, { waitUntil: "networkidle2" });
+    await waitForTimeout(2000);
 
     // Tweet metnini al
-    statusCallback("Tweet içeriği alınıyor...");
-    const tweetText = await tweetParser.extractTweetText(page, elementTimeout);
-
-    if (tweetText) {
-      statusCallback(`Tweet metni alındı: ${tweetText}`);
-    } else {
-      statusCallback("Tweet metni bulunamadı");
-    }
-
-    // Medya dosyasını indir
-    let mediaPath = await mediaHandler.downloadTweetPhoto(
-      page,
-      elementTimeout,
-      statusCallback
+    const tweetText = await page.$eval(
+      'div[data-testid="tweetText"]',
+      (el) => el.textContent
     );
+    statusCallback(`Tweet metni alındı: ${tweetText}`);
 
-    // Eğer fotoğraf yoksa video dene
-    if (!mediaPath) {
-      mediaPath = await mediaHandler.downloadTweetVideo(
-        tweetUrl,
-        statusCallback
-      );
+    // Medya kontrolü ve indirme
+    let mediaPath = null;
+    let hasMedia = false;
+
+    // Fotoğraf kontrolü
+    const hasPhoto = await page.$('div[data-testid="tweetPhoto"] img');
+    if (hasPhoto) {
+      try {
+        mediaPath = await mediaHandler.downloadTweetPhoto(page);
+        hasMedia = true;
+        statusCallback("Tweet fotoğrafı indirildi");
+      } catch (error) {
+        statusCallback(`Fotoğraf indirme hatası: ${error.message}`);
+      }
     }
 
-    if (!mediaPath) {
-      statusCallback("Medya dosyası bulunamadı, işlem iptal edildi");
-      return false;
+    // Video kontrolü
+    const hasVideo = await page.$('div[data-testid="videoPlayer"]');
+    if (hasVideo) {
+      try {
+        mediaPath = await mediaHandler.downloadTweetVideo(page);
+        hasMedia = true;
+        statusCallback("Tweet videosu indirildi");
+      } catch (error) {
+        statusCallback(`Video indirme hatası: ${error.message}`);
+      }
     }
 
     // Buffer'a giriş yap
     await bufferClient.login(page, bufferEmail, bufferPassword, statusCallback);
 
     // Kompozisyon sayfasını aç
-    if (
-      !(await bufferClient.openComposePage(
-        page,
-        elementTimeout,
-        statusCallback
-      ))
-    ) {
-      statusCallback("Kompozisyon sayfası açılamadı");
-      return false;
+    const composeOpened = await bufferClient.openComposePage(
+      page,
+      elementTimeout,
+      statusCallback
+    );
+    if (!composeOpened) {
+      throw new Error("Kompozisyon sayfası açılamadı");
     }
 
-    // Tweet metnini gir
-    if (
-      !(await textInputHandler.typeTextIntoComposer(
-        page,
-        tweetText,
-        elementTimeout,
-        statusCallback
-      ))
-    ) {
-      statusCallback("Tweet metni eklenemedi");
-      return false;
+    // Tweet metnini yapıştır
+    await page.type('div[data-testid="tweetTextarea_0"]', tweetText);
+    statusCallback("Tweet metni yapıştırıldı");
+
+    // Eğer medya varsa yükle
+    if (hasMedia && mediaPath) {
+      const fileInput = await page.$('input[type="file"]');
+      if (fileInput) {
+        await fileInput.uploadFile(mediaPath);
+        statusCallback("Medya yüklendi");
+        await waitForTimeout(2000);
+      }
     }
 
-    // Medya yükle
-    statusCallback("Medya yükleniyor...");
-    const inputUploadHandle = await page.$('input[type="file"]');
-    await inputUploadHandle.uploadFile(mediaPath);
-    await waitForTimeout(5000);
-
-    // Post işlemini tamamla (paylaş veya kuyruğa ekle)
-    if (autoPublish) {
-      await bufferClient.publishNow(page, elementTimeout, statusCallback);
-    } else {
-      await bufferClient.addToQueue(page, elementTimeout, statusCallback);
+    // Kuyruğa ekle
+    const addedToQueue = await bufferClient.addToQueue(
+      page,
+      elementTimeout,
+      statusCallback
+    );
+    if (!addedToQueue) {
+      throw new Error("Tweet kuyruğa eklenemedi");
     }
 
-    // Geçici dosyayı temizle
-    mediaHandler.cleanupMediaFile(mediaPath, statusCallback);
-
+    statusCallback("Tweet başarıyla işlendi ve kuyruğa eklendi");
     return true;
   } catch (error) {
     statusCallback(`Tweet işleme hatası: ${error.message}`);
-    console.error("Tweet işleme hatası:", error);
     return false;
   }
 }
