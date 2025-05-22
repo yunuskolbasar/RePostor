@@ -200,41 +200,8 @@ async function saveAsDraft(page, timeout, statusCallback) {
  * @param {number} timeout Zaman aşımı
  * @param {Function} statusCallback Durum güncellemesi callback'i
  */
-async function addToQueue(page, timeout, statusCallback, tweetText, mediaPath) {
+async function addToQueue(page, timeout, statusCallback) {
   try {
-    // Önce Buffer'a giriş yap
-    statusCallback("Buffer'a giriş yapılıyor...");
-    await login(page, bufferEmail, bufferPassword, statusCallback);
-
-    // Kompozisyon sayfasını aç
-    statusCallback("Kompozisyon sayfası açılıyor...");
-    if (!(await openComposePage(page, timeout, statusCallback))) {
-      statusCallback("Kompozisyon sayfası açılamadı");
-      return false;
-    }
-
-    // Tweet metnini gir
-    statusCallback("Tweet metni giriliyor...");
-    const textArea = await page.waitForSelector('div[data-testid="composerTextarea"]', { timeout: timeout });
-    if (!textArea) {
-      statusCallback("Tweet metin alanı bulunamadı");
-      return false;
-    }
-    await textArea.click();
-    await page.keyboard.type(tweetText, { delay: 100 });
-
-    // Eğer medya varsa yükle
-    if (mediaPath) {
-      statusCallback("Medya yükleniyor...");
-      const inputUploadHandle = await page.$('input[type="file"]');
-      if (!inputUploadHandle) {
-        statusCallback("Medya yükleme alanı bulunamadı");
-        return false;
-      }
-      await inputUploadHandle.uploadFile(mediaPath);
-      await waitForTimeout(5000);
-    }
-
     statusCallback("Post kuyruğa eklenmeden önce 'Customize for each network' butonuna tıklanıyor...");
     await page.waitForSelector('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E', { timeout: timeout });
     const customizeBtn = await page.$('button[data-testid="omnibox-buttons"], button.publish_customizeButton_yRB5E');
