@@ -143,6 +143,7 @@ async function openComposePage(page, elementTimeout, statusCallback) {
     statusCallback("Buffer'ın ana sayfasına yönlendiriliyor...");
     await page.goto("https://publish.buffer.com/all-channels", {
       waitUntil: "networkidle2",
+       timeout: 60000 
     });
 
     statusCallback("Ortadaki mavi 'New Post' butonu aranıyor...");
@@ -153,7 +154,7 @@ async function openComposePage(page, elementTimeout, statusCallback) {
       if (text && text.trim() === 'New Post') {
         await btn.click();
         statusCallback("'New Post' butonuna tıklandı (ortadaki mavi buton)");
-        await waitForTimeout(2000);
+        await waitForTimeout(9000);
         found = true;
         break;
       }
@@ -163,6 +164,7 @@ async function openComposePage(page, elementTimeout, statusCallback) {
       return false;
     }
     statusCallback("Kompozisyon sayfası açıldı");
+    await waitForTimeout(5000); // Kompozisyon sayfası açıldıktan sonra 5sn bekle
     return true;
   } catch (error) {
     statusCallback(`Kompozisyon sayfası açma hatası: ${error.message}`);
