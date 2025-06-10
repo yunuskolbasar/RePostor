@@ -181,9 +181,18 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
         composeBox = await page.$(selector);
         if (composeBox) {
           await composeBox.focus();
-          await page.evaluate((el, text) => {
-            el.innerText = text;
-          }, composeBox, composeText);
+          // Farklı kutu tipleri için uygun şekilde yazma işlemi
+          if (selector === 'textarea') {
+            await composeBox.type(composeText, {delay: 20});
+          } else {
+            await page.evaluate((el, text) => {
+              // Hem innerText hem value hem de input event tetikleme
+              el.innerText = text;
+              el.textContent = text;
+              if (el.value !== undefined) el.value = text;
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+            }, composeBox, composeText);
+          }
           statusCallback(`Kompozisyon kutusuna yazıldı: ${composeText}`);
           break;
         }
@@ -192,7 +201,7 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
       }
     }
     if (!composeBox) {
-      statusCallback("Kompozisyon kutusu bulunamadı!");
+      statusCallback("Kompozisyon kutusu bulunamadı veya metin eklenemedi!");
       return false;
     }
     await waitForTimeout(2000); // Yazdıktan sonra kısa bekle
