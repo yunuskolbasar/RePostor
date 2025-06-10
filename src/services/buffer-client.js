@@ -201,13 +201,15 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
           // Klavye ile yaz
           await page.type(selector, composeText, {delay: 20});
 
-          // JS ile de metni ata ve input/change event tetikle
+          // JS ile de metni ata ve input/change/blur event tetikle
           await page.evaluate((el, text) => {
             el.innerText = text;
             el.textContent = text;
             if (el.value !== undefined) el.value = text;
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
             if (el._valueTracker) {
               el._valueTracker.setValue('');
             }
