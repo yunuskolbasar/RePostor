@@ -138,12 +138,12 @@ async function login(page, email, password, statusCallback) {
  * @param {number} elementTimeout Zaman aşımı
  * @param {Function} statusCallback Durum güncellemesi callback'i
  */
-async function openComposePage(page, elementTimeout, statusCallback) {
+async function openComposePage(page, elementTimeout, statusCallback, composeText) {
   try {
     statusCallback("Buffer'ın ana sayfasına yönlendiriliyor...");
     await page.goto("https://publish.buffer.com/all-channels", {
       waitUntil: "networkidle2",
-       timeout: 60000 
+      timeout: 60000
     });
 
     statusCallback("Ortadaki mavi 'New Post' butonu aranıyor...");
@@ -165,6 +165,37 @@ async function openComposePage(page, elementTimeout, statusCallback) {
     }
     statusCallback("Kompozisyon sayfası açıldı");
     await waitForTimeout(5000); // Kompozisyon sayfası açıldıktan sonra 5sn bekle
+
+    // Kompozisyon kutusunu bul ve yaz
+    statusCallback("Kompozisyon kutusu aranıyor ve yazılıyor...");
+    const composeSelectors = [
+      'div[contenteditable="true"]',
+      'div.public-DraftEditor-content',
+      'div[data-testid="composer-textarea"]',
+      'textarea',
+      'div[role="textbox"]'
+    ];
+    let composeBox = null;
+    for (const selector of composeSelectors) {
+      try {
+        composeBox = await page.$(selector);
+        if (composeBox) {
+          await composeBox.focus();
+          await page.evaluate((el, text) => {
+            el.innerText = text;
+          }, composeBox, composeText);
+          statusCallback(`Kompozisyon kutusuna yazıldı: ${composeText}`);
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    if (!composeBox) {
+      statusCallback("Kompozisyon kutusu bulunamadı!");
+      return false;
+    }
+    await waitForTimeout(2000); // Yazdıktan sonra kısa bekle
     return true;
   } catch (error) {
     statusCallback(`Kompozisyon sayfası açma hatası: ${error.message}`);
