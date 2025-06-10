@@ -27,7 +27,7 @@ async function typeTextIntoComposer(page, text, timeout, statusCallback) {
     statusCallback("Tweet metni ekleniyor...");
 
     // Buffer arayüzünün yüklenmesi için bekle
-    await page.waitForTimeout(8000);
+    await waitForTimeout(8000);
 
     // Debug için sayfa içeriğini logla
     statusCallback("Sayfa yapısı inceleniyor...");
