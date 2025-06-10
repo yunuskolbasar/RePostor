@@ -181,12 +181,10 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
         composeBox = await page.$(selector);
         if (composeBox) {
           await composeBox.focus();
-          // Farklı kutu tipleri için uygun şekilde yazma işlemi
           if (selector === 'textarea') {
-            await composeBox.type(composeText, {delay: 20});
+            await page.type(selector, composeText, {delay: 20});
           } else {
             await page.evaluate((el, text) => {
-              // Hem innerText hem value hem de input event tetikleme
               el.innerText = text;
               el.textContent = text;
               if (el.value !== undefined) el.value = text;
