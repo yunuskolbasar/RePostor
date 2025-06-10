@@ -180,18 +180,37 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
       try {
         composeBox = await page.$(selector);
         if (composeBox) {
+          // Kutunun görünür ve etkin olduğundan emin ol
+          const isVisible = await page.evaluate(el => {
+            const style = window.getComputedStyle(el);
+            return (
+              style &&
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              style.opacity !== "0" &&
+              !el.disabled
+            );
+          }, composeBox);
+          if (!isVisible) continue;
+
+          // Kutuyu tıkla ve temizle
+          await composeBox.click({ clickCount: 3 });
+          await page.keyboard.press("Backspace");
+
+          // Klavye ile yaz
           await composeBox.focus();
-          if (selector === 'textarea') {
-            await page.type(selector, composeText, {delay: 20});
-          } else {
-            await page.evaluate((el, text) => {
-              el.innerText = text;
-              el.textContent = text;
-              if (el.value !== undefined) el.value = text;
-              el.dispatchEvent(new Event('input', { bubbles: true }));
-            }, composeBox, composeText);
-          }
+          await page.type(selector, composeText, {delay: 20});
+
+          // JS ile de metni ata ve input event tetikle
+          await page.evaluate((el, text) => {
+            el.innerText = text;
+            el.textContent = text;
+            if (el.value !== undefined) el.value = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }, composeBox, composeText);
+
           statusCallback(`Kompozisyon kutusuna yazıldı: ${composeText}`);
+          await waitForTimeout(1000); // Yazdıktan sonra kısa bekle
           break;
         }
       } catch (e) {

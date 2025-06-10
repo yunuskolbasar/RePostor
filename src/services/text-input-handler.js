@@ -41,8 +41,12 @@ async function typeTextIntoComposer(page, text, timeout, statusCallback) {
       try {
         statusCallback(`Metin kutusu aranıyor: ${selector}...`);
 
-        // Seçiciyi doğrudan bul
-        const element = await page.$(selector);
+        // Seçiciyi görünür olana kadar bekle
+        const element = await page.waitForSelector(selector, {
+          timeout: timeout * 2,
+          visible: true,
+        });
+
         if (!element) continue;
 
         // Element görünür mü kontrol et
