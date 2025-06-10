@@ -193,25 +193,36 @@ async function openComposePage(page, elementTimeout, statusCallback, composeText
           }, composeBox);
           if (!isVisible) continue;
 
-          // Kutuyu tıkla ve temizle
+          // Kutuyu tıkla ve focus yap
           await composeBox.click({ clickCount: 3 });
+          await composeBox.focus();
           await page.keyboard.press("Backspace");
 
           // Klavye ile yaz
-          await composeBox.focus();
           await page.type(selector, composeText, {delay: 20});
 
-          // JS ile de metni ata ve input event tetikle
+          // JS ile de metni ata ve input/change event tetikle
           await page.evaluate((el, text) => {
             el.innerText = text;
             el.textContent = text;
             if (el.value !== undefined) el.value = text;
             el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            if (el._valueTracker) {
+              el._valueTracker.setValue('');
+            }
           }, composeBox, composeText);
 
-          statusCallback(`Kompozisyon kutusuna yazıldı: ${composeText}`);
-          await waitForTimeout(1000); // Yazdıktan sonra kısa bekle
-          break;
+          // Son olarak kutunun içeriğini kontrol et
+          const written = await page.evaluate(el => el.innerText || el.value || el.textContent, composeBox);
+          if (written && written.includes(composeText)) {
+            statusCallback(`Kompozisyon kutusuna yazıldı: ${composeText}`);
+            await waitForTimeout(1000); // Yazdıktan sonra kısa bekle
+            break;
+          } else {
+            statusCallback("Yazı kutusuna metin eklenemedi, sonraki seçici deneniyor.");
+            continue;
+          }
         }
       } catch (e) {
         continue;
